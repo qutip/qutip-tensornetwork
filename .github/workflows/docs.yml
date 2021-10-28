@@ -25,7 +25,7 @@ jobs:
           python -mpip install git+https://github.com/qutip/qutip.git@dev.major
           python -c 'import qutip; qutip.about()'
 
-      - name: Install qutip-tensornetwork from GitHub
+      - name: Install qutip-tensornetwork and dependencies
         run: |
           python -mpip install .[full]
           python -c 'import qutip_tensornetwork; print(qutip_tensornetwork.__version__)'
