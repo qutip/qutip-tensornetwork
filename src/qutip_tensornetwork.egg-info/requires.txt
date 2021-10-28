@@ -1,0 +1,7 @@
+qutip>=5.0.0.dev0
+
+[full]
+pytest>=6.0
+
+[tests]
+pytest>=6.0
