@@ -1,19 +1,14 @@
 import tensornetwork as tn
 import qutip
 from .network import Network
+from tensornetwork import copy
 
-__all__ = ["matmul_dataquoperator"]
-def get_compatible_dims():
-    return NotImplementedError()
+__all__ = ["matmul_network", "match_edges_by_split"]
 
-# TODO: I realized that this function is not what I need as I need to reshape
-# the in_edges and out_edges of the same network. This will be accomplised by
-# the reshape method in Network and the compatible_dims function that will
-# return a compatible dimensio with both left and right if any. Although the
-# algorithms are going to be similar to this one.
 def match_edges_by_split(out_edges, in_edges):
     # Shallow copy to allow popping from out_edges
-    _out_edges = out_edges[:] _in_edges = in_edges[:]
+    _out_edges = out_edges[:]
+    _in_edges = in_edges[:]
 
     new_in_edges = []
     new_out_edges = []
@@ -104,28 +99,29 @@ def matmul_network(left, right, scale=1, out=None):
     defaulting to 1. If `out` is not given it is assumed to be 0.
     """
     if scale!=1:
-        return NotImplementedError()
-    dims = get_compatible_dims(right.dims[1], left.dims[0])
-    right.reshape(dims)
-    left.reshape(dims)
+        raise NotImplementedError()
 
     # Copy all nodes involved in the two operators.
     # We must do this separately for self and other, in case self and other
     # are defined via the same network components (e.g. if self === other).
-    nodes_dict1, edges_dict1 = copy(left.nodes, False)
-    nodes_dict2, edges_dict2 = copy(right.nodes, False)
+    new_nodes_left, new_edges_left = copy(left.nodes, False)
+    new_nodes_right, new_edges_right = copy(right.nodes, False)
 
+    in_edges = [new_edges_left[e] for e in left.in_edges]
+    out_edges = [new_edges_right[e] for e in right.out_edges]
+
+    out_edges, in_edges = match_edges_by_split(out_edges, in_edges)
 
     # connect edges to create network for the result
-    for (e1, e2) in zip(in_edges, out_edges):
-      _ = edges_dict1[e1] ^ edges_dict2[e2]
+    for (e_in, e_out) in zip(in_edges, out_edges):
+      _ = e_in ^ e_out
 
-    in_edges = [edges_dict2[e] for e in other.in_edges]
-    out_edges = [edges_dict1[e] for e in self.out_edges]
-    ref_nodes = ([n for _, n in nodes_dict1.items()] +
-                 [n for _, n in nodes_dict2.items()])
-    ignore_edges = ([edges_dict1[e] for e in self.ignore_edges] +
-                    [edges_dict2[e] for e in other.ignore_edges])
+    in_edges = [new_edges_right[e] for e in right.in_edges]
+    out_edges = [new_edges_left[e] for e in left.out_edges]
+    ref_nodes = ([n for _, n in new_nodes_left.items()] +
+                 [n for _, n in new_nodes_right.items()])
+    ignore_edges = ([new_edges_left[e] for e in left.ignore_edges] +
+                    [new_edges_right[e] for e in right.ignore_edges])
 
     return Network(out_edges, in_edges, ref_nodes, ignore_edges)
 

@@ -178,16 +178,17 @@ class Network(qutip.core.data.Data):
                            "are not members of ignore_edges).")
 
     def conj(self) -> "Network":
-        return NotImplementedError()
+        raise NotImplementedError()
 
     def transopose(self) -> "Network":
-        return NotImplementedError()
+        raise NotImplementedError()
 
+    # TODO: this does not return a copy
     def copy(self) -> "Network":
-        return NotImplementedError()
+        return self
 
     def from_np_array(self, array) -> "Network":
-        return NotImplementedError()
+        raise NotImplementedError()
 
     def _repr_svg_(self):
         return to_graphviz(self.nodes)._repr_svg_()
@@ -317,7 +318,7 @@ class Network(qutip.core.data.Data):
         ignore_edges = ([edges_dict1[e] for e in self.ignore_edges] +
                         [edges_dict2[e] for e in other.ignore_edges])
 
-        return quantum_constructor(out_edges, in_edges, ref_nodes, ignore_edges)
+        return Network(out_edges, in_edges, ref_nodes, ignore_edges)
 
     def contract(
         self,
@@ -386,7 +387,9 @@ class Network(qutip.core.data.Data):
         if len(nodes) != 1:
           raise ValueError("Node count '{}' > 1 after contraction!".format(
               len(nodes)))
-        return list(nodes)[0].tensor
+        array = list(nodes)[0].tensor
+
+        return array.reshape(self.shape)
 
     def as_quoperator(self):
         return NotImplementedError()
