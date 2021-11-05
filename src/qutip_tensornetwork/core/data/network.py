@@ -191,7 +191,8 @@ class Network(qutip.core.data.Data):
         raise NotImplementedError()
 
     def _repr_svg_(self):
-        return to_graphviz(self.nodes)._repr_svg_()
+        # Dot engine seems to be prettier than neato to draw our graphs.
+        return to_graphviz(self.nodes, engine='dot')._repr_svg_()
 
     def adjoint(self) -> "Network":
         """The adjoint of the operator.
