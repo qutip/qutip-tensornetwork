@@ -3,7 +3,6 @@ qutip-tensornetwork: TesorNetwork backend for QuTiP
 
 A plugin for [QuTiP](https://qutip.org) providing a [TensorNetwork](https://github.com/google/TensorNetwork) linear-algebra backend.
 
-
 Support
 -------
 
@@ -12,8 +11,6 @@ Support
 
 We are proud to be affiliated with [Unitary Fund](https://unitary.fund) and [NumFOCUS](https://numfocus.org).
 QuTiP development is supported by [Nori's lab](https://dml.riken.jp/) at RIKEN, by the University of Sherbrooke, and by Aberystwyth University, [among other supporting organizations](https://qutip.org/#supporting-organizations).
-Initial work on this project was sponsored by [Google Summer of Code 2021](https://summerofcode.withgoogle.com).
-
 
 Installation
 ------------
