@@ -26,7 +26,7 @@ def _check_imported_local_package():
     import qutip_tensornetwork
     repo_dir = pathlib.Path(__file__).absolute().parents[1]
     expected_import_dir = repo_dir / 'src' / 'qutip_tensornetwork'
-    imported_dir = pathlib.Path(qutip_tensorflow.__file__).parent
+    imported_dir = pathlib.Path(qutip_tensornetwork.__file__).parent
     if expected_import_dir != imported_dir:
         warnings.warn(
             "The version of qutip_tensornetwork available on the path is not "
