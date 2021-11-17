@@ -33,7 +33,7 @@ class Network(qutip.core.data.Data):
     dangling `out_edges` and `in_edges` represent the rows and columns of the
     matrix respectively.
 
-    Notes:
+    Notes
     -----
     Most of the operations and logic of this class has been derived from
     `tensornetwork.QuOperator`. However, this class is not compatible with
@@ -198,10 +198,15 @@ class Network(qutip.core.data.Data):
             `greedy`, which uses the greedy algorithm from `opt_einsum` to
             determine a contraction order.
 
-        Returns:
+        final_edge_order: List of Edges
+
+        Returns
+        -------
+        network: ``Network``
             A contracted version of the network with a single node.
 
-        See also:
+        See also
+        --------
             tensornetwork.contractor: internally this is the function that is
             called for the contraction.
 
@@ -254,8 +259,8 @@ class Network(qutip.core.data.Data):
     @classmethod
     def from_2d_array(cls, array):
         """Create a network from a 2D, 1D or scalar array. This network will
-        have a single node with out_edges refering to the first index of the
-        array and in_edges refering to the second index of the array. If any of
+        have a single node with out_edges referring to the first index of the
+        array and in_edges referring to the second index of the array. If any of
         those has dimension 1, it is ignored when creating in_edges or
         out_edges.
 
@@ -267,7 +272,7 @@ class Network(qutip.core.data.Data):
         Returns
         -------
         network: Network
-            Instance of Network with a single node represeting array.
+            Instance of Network with a single node representing array.
 
         Examples
         --------
@@ -278,6 +283,7 @@ class Network(qutip.core.data.Data):
 
         One dimensional arrays are understoof as kets and cero dimensional ones
         as scalars.
+
         >>> array = np.array((2)) # ket
         >>> net = Network.from_2d_array(array)
         >>> net.dims
@@ -285,6 +291,7 @@ class Network(qutip.core.data.Data):
 
         If the array has one dimension being 1, it is reshaped before the
         Network instantiation.
+
         >>> array = np.array((2, 1)) # ket
         >>> net = Network.from_2d_array(array)
         >>> net.dims
@@ -346,16 +353,21 @@ class Network(qutip.core.data.Data):
         """The partial trace of the operator.
 
         Subsystems to trace out are supplied as indices, so that dangling edges
-        are connected to eachother as:
-          `out_edges[i] ^ in_edges[i] for i in subsystems_to_trace_out`
+        are connected to each other as:
+        `out_edges[i] ^ in_edges[i] for i in subsystems_to_trace_out`
 
         This does not modify the original network. The original ordering of the
         remaining subsystems is maintained.
 
-        Args:
-          subsystems_to_trace_out: Indices of subsystems to trace out.
-        Returns:
-          A new QuOperator or QuScalar representing the result.
+        Parameters
+        ----------
+        subsystems_to_trace_out:
+            Indices of subsystems to trace out.
+
+        Returns
+        -------
+        network: Network
+            Network representing the partial trace of the input.
         """
         raise NotImplementedError() # This is yet not Implemented
         out_edges_trace = [self.out_edges[i] for i in subsystems_to_trace_out]
@@ -422,30 +434,29 @@ class Network(qutip.core.data.Data):
         concatenation of the `out_edges` (`in_edges`) of `A.copy()` with that of
         `B.copy()`:
 
-        `new_out_edges = [*out_edges_A_copy, *out_edges_B_copy]`
-        `new_in_edges = [*in_edges_A_copy, *in_edges_B_copy]`
+        ``new_out_edges = [*out_edges_A_copy, *out_edges_B_copy]``
 
-        Args:
-        -----
-          other: The other operator (`B`).
+        ``new_in_edges = [*in_edges_A_copy, *in_edges_B_copy]``
 
-        Returns:
-        --------
-          The result (`AB`).
+        Parameters
+        ----------
+        other: Network
+            The other network (`B`).
+
+        Returns
+        -------
+        network: Network
+            Network representing `A` ⊗ `B`.
         """
-        nodes_dict1, edges_dict1 = copy(self.nodes, False)
-        nodes_dict2, edges_dict2 = copy(other.nodes, False)
+        a = self.copy()
+        b = other.copy()
 
-        in_edges = ([edges_dict1[e] for e in self.in_edges] +
-                    [edges_dict2[e] for e in other.in_edges])
-        out_edges = ([edges_dict1[e] for e in self.out_edges] +
-                     [edges_dict2[e] for e in other.out_edges])
-        ref_nodes = ([n for _, n in nodes_dict1.items()] +
-                     [n for _, n in nodes_dict2.items()])
-        ignore_edges = ([edges_dict1[e] for e in self.ignore_edges] +
-                        [edges_dict2[e] for e in other.ignore_edges])
+        in_edges = [*a.in_edges, *b.in_edges]
+        out_edges = [*a.out_edges, *b.out_edges]
+        nodes = a.nodes | b.nodes
+        shape = (a.shape[0]*b.shape[0], a.shape[1]*b.shape[1])
 
-        return Network(out_edges, in_edges, ref_nodes, ignore_edges)
+        return Network._fast_constructor(out_edges, in_edges, nodes, shape)
 
 
 def _match_edges_by_split(out_edges, in_edges):
@@ -468,6 +479,9 @@ def _match_edges_by_split(out_edges, in_edges):
     _out_edges = out_edges[:]
     _in_edges = in_edges[:]
 
+    in_dims = [e.dimension for e in in_edges]
+    out_dims = [e.dimension for e in out_edges]
+
     new_in_edges = []
     new_out_edges = []
 
@@ -475,61 +489,63 @@ def _match_edges_by_split(out_edges, in_edges):
         return _out_edges, _in_edges
 
     if len(_in_edges) == 0 or len(_out_edges)==0:
-        in_dims = [dim.dimension for dim in _in_edges]
-        out_dims = [dim.dimension for dim in _out_edges]
+        raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+                         str(in_dims) + " whereas for out_edges: "+str(out_dims))
+
+    if np.prod(in_dims) != np.product(out_dims):
         raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
                          str(in_dims) + " whereas for out_edges: "+str(out_dims))
 
     e_in = in_edges.pop()
     e_out = out_edges.pop()
 
-    try:
-        while True:
+    while True:
 
-            if e_in.dimension == e_out.dimension:
-                new_in_edges.append(e_in)
+        if e_in.dimension == e_out.dimension:
+            new_in_edges.append(e_in)
+            new_out_edges.append(e_out)
+
+            if len(in_edges) == 0 and len(out_edges) == 0:
+                break
+
+            e_in = in_edges.pop()
+            e_out = out_edges.pop()
+
+
+        elif e_in.dimension > e_out.dimension:
+            # IndexError will be caught and by try/except which will then
+            # raise the appropriate error
+            if e_in.dimension%e_out.dimension != 0:
+                raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+                                 str(in_dims) + " whereas for out_edges: "+str(out_dims))
+            else:
+                # new_shape=(e_out.dimension, e_in.dimension//e_out.dimension)
+                # new_e_in, e_in = tn.split_edge(e_in, shape=new_shape)
+                new_shape = (e_in.dimension//e_out.dimension, e_out.dimension)
+                e_in, new_e_in = tn.split_edge(e_in, shape=new_shape)
+
                 new_out_edges.append(e_out)
+                new_in_edges.append(new_e_in)
 
-                if len(in_edges) == 0 and len(out_edges) == 0:
-                    break
-
-                e_in = in_edges.pop()
                 e_out = out_edges.pop()
 
+        elif e_in.dimension < e_out.dimension:
+            # IndexError will be caught and by try/except which will then
+            # raise the appropriate error
+            if e_out.dimension%e_in.dimension != 0:
+                raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+                                 str(in_dims) + " whereas for out_edges: "+str(out_dims))
+            else:
+                # new_shape=(e_in.dimension, e_out.dimension//e_in.dimension)
+                # new_e_out, e_out = tn.split_edge(e_out, shape=new_shape)
+                new_shape=(e_out.dimension//e_in.dimension, e_in.dimension)
+                e_out, new_e_out = tn.split_edge(e_out, shape=new_shape)
 
-            elif e_in.dimension > e_out.dimension:
-                # IndexError will be caught and by try/except which will then
-                # raise the appropriate error
-                if e_in.dimension%e_out.dimension != 0:
-                    raise IndexError()
-                else:
-                    new_shape=(e_out.dimension, e_in.dimension//e_out.dimension)
-                    new_e_in, e_in = tn.split_edge(e_in, shape=new_shape)
+                new_out_edges.append(new_e_out)
+                new_in_edges.append(e_in)
 
-                    new_out_edges.append(e_out)
-                    new_in_edges.append(new_e_in)
+                e_in = in_edges.pop()
 
-                    e_out = out_edges.pop()
-
-            elif e_in.dimension < e_out.dimension:
-                # IndexError will be caught and by try/except which will then
-                # raise the appropriate error
-                if e_out.dimension%e_in.dimension != 0:
-                    raise IndexError()
-                else:
-                    new_shape=(e_in.dimension, e_out.dimension//e_in.dimension)
-                    new_e_out, e_out = tn.split_edge(e_out, shape=new_shape)
-
-                    new_out_edges.append(new_e_out)
-                    new_in_edges.append(e_in)
-
-                    e_in = in_edges.pop()
-
-    except IndexError:
-        in_dims = [dim for dim in in_edges]
-        out_dims = [dim for dim in out_edges]
-        raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
-                         str(in_dims) + " whereas for out_edges: "+str(out_dims))
 
 
     new_out_edges.reverse()

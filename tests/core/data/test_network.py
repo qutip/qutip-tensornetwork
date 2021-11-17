@@ -229,37 +229,103 @@ def test_to_array():
 
     np.testing.assert_allclose(result, expect)
 
+class TestMatmul:
 
-def test_mamtul():
-    network1 = random_complex_network(5)
-    network2 = network1.adjoint()
+    @pytest.mark.parametrize("dim_in, dim_out",
+                            [([4], [2,2]),
+                             ([2,2], [4]),
+                             ([2,10], [2,5,2]),
+                             ([2,10], [2,2,5]),
+                             ([2], [2]),
+                            ])
+    def test_comatible(self, dim_in, dim_out):
+        """Tests that matrix multiplication works with networks that have
+        different dimensions. This test does not check for the correct tensor 
+        structure but rather that the output is numerically correct once
+        contracted."""
+        right = random_node(dim_out)
+        left = random_node(dim_in)
 
-    expected = network2.to_array()@network1.to_array()
-    np.testing.assert_allclose(expected, (network2@network1).to_array())
+        right_net = Network(right[:], [])
+        left_net = Network([], left[:])
 
-def test_matmul_graph():
-    """The operation tested here can be respresented as a graph in the
-    forllowing way:
-    n1 - n3
-    n2 - n4
+        result = left_net@right_net
 
-    This test in particular checks that matmul for networks gives the correct
-    graph.
-    """
-    n1 = random_node((3,))
-    n2 = random_node((3,))
-    n3 = random_node((3,))
-    n4 = random_node((3,))
+        # Desired
+        left = left.tensor.reshape((1, np.prod(dim_out)))
+        right = right.tensor.reshape((np.prod(dim_in), 1))
+        desired = left@right
 
-    network1 = Network([n1[0], n2[0]], [])
-    network2 = Network([], [n3[0], n4[0]])
-    result = network2@network1
+        np.testing.assert_allclose(result.to_array(), desired)
 
-    n1[0] ^ n3[0]
-    n2[0] ^ n4[0]
-    expexted_network = Network([], [], [n1, n2, n3, n4])
 
-    assert_network_close(result, expexted_network)
+
+
+    @pytest.mark.parametrize("dim_in, dim_out",
+                            [([4], [3]),
+                             ([4], [2, 3]),
+                             ([2, 3], [4]),
+                             ([2, 10], [5, 2, 2]),
+                             ([2, 10], [2, 2, 2]),
+                             ([2, 5], [5, 2]),
+                            ])
+    def test_non_compatible_raises(self, dim_in, dim_out):
+        """Tests that matrix multiplication between networks that are supposed
+        to not be compatible raises the appropiate error.
+        """
+        left = random_node(dim_in)
+        right = random_node(dim_out)
+
+        right_net = Network(right[:], [])
+        left_net = Network([], left[:])
+
+        with pytest.raises(ValueError):
+            result = left_net@right_net
+
+    def test_numerically_correct(self):
+        network1 = random_complex_network(5)
+        network2 = network1.adjoint()
+
+        expected = network2.to_array()@network1.to_array()
+        np.testing.assert_allclose(expected, (network2@network1).to_array())
+
+    def test_graph_structure(self):
+        """The operation tested here can be respresented as a graph in the
+        forllowing way:
+        n1 - n3
+        n2 - n4
+
+        This test in particular checks that matmul for networks gives the correct
+        graph.
+        """
+        n1 = random_node((3,))
+        n2 = random_node((3,))
+        n3 = random_node((3,))
+        n4 = random_node((3,))
+
+        network1 = Network([n1[0], n2[0]], [])
+        network2 = Network([], [n3[0], n4[0]])
+        result = network2@network1
+
+        n1[0] ^ n3[0]
+        n2[0] ^ n4[0]
+        expexted_network = Network([], [], [n1, n2, n3, n4])
+
+        assert_network_close(result, expexted_network)
+
+def test_tensor():
+    node1 = random_node((2,2))
+    network1 = Network([node1[0]], [node1[1]])
+
+    node2 = random_node((2,2))
+    network2 = Network([node2[0]], [node2[1]])
+
+    result = network1.tensor(network2)
+
+    # Expected
+    desired = Network([node1[0], node2[0]], [node1[1], node2[1]])
+
+    assert_network_close(result, desired)
 
 @pytest.mark.parametrize("shape, expected_dims",
                          [((2, 2), [[2], [2]]),
