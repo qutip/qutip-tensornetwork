@@ -1,11 +1,7 @@
 import qutip
 from .network import Network
-from qutip_tensornetwork.quantum import QuOperator
 import tensornetwork as tn
 
-# Conversion functions from QuOperators to Network data class.
-def is_quoperator(quoperator):
-    return isinstance(quoperator, QuOperator)
 
 def from_quoperator(quoperator):
     return Network(quoperator.out_edges, quoperator.in_edges,
@@ -48,8 +44,13 @@ qutip.data.to.add_conversions(
 # User friendly name for conversion with `to` or Qobj creation functions:
 qutip.data.to.register_aliases(["network"], Network)
 
-qutip.data.create.add_creators(
-    [
-        (is_quoperator, from_quoperator, 85),
-    ]
+# This will be used once init for quantum in TensroNetwork is included.
+# Conversion functions from QuOperators to Network data class.
+# def is_quoperator(quoperator):
+    # return isinstance(quoperator, QuOperator)
+
+# qutip.data.create.add_creators(
+    # [
+        # (is_quoperator, from_quoperator, 85),
+    # ]
 )
