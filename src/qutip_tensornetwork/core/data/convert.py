@@ -53,4 +53,4 @@ qutip.data.to.register_aliases(["network"], Network)
     # [
         # (is_quoperator, from_quoperator, 85),
     # ]
-)
+# )
