@@ -8,46 +8,21 @@ import tensornetwork as tn
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork.network_components import AbstractNode, Node, Edge
 from tensornetwork.network_components import CopyNode
-from tensornetwork.network_operations import get_all_nodes, copy, reachable
+from tensornetwork.network_operations import (get_all_nodes, reachable,
+                                              get_all_edges
+                                             )
 from tensornetwork.network_operations import get_subgraph_dangling
 from tensornetwork.contractors import greedy
 Tensor = Any
 
-__all__ = ['copy_quoperator', 'Network']
-
-def _is_shape_compatible_with_dims(shape, dims):
-    return shape[0]==np.prod(dims[0]) and shape[1]==np.prod(dims[1])
-
-def copy_quoperator(quoperator, copy=True, conjugate=False):
-    """Copies nodes of QuOperator and returns a new QuOperator with the copied nodes and new edges linked."""
-    if copy==False:
-        return quoperator
-
-    nodes_dict, edge_dict = tn.copy(quoperator.nodes, conjugate=conjugate)
-    out_edges = [edge_dict[e] for e in quoperator.out_edges]
-    in_edges = [edge_dict[e] for e in quoperator.in_edges]
-    ref_nodes = [nodes_dict[n] for n in quoperator.ref_nodes]
-    ignore_edges = [edge_dict[e] for e in quoperator.ignore_edges]
-    return QuOperator(out_edges, in_edges, ref_nodes, ignore_edges)
-
-def _check_valid_shape(shape, error_msg):
-    """Check that shape is a tuple of len 2 with positive integer numbers."""
-    if not (
-        isinstance(shape, tuple)
-        and len(shape) == 2
-        and isinstance(shape[0], numbers.Integral)
-        and isinstance(shape[1], numbers.Integral)
-        and shape[0] > 0
-        and shape[1] > 0
-    ):
-        raise ValueError(error_msg)
+__all__ = ['Network']
 
 class Network(qutip.core.data.Data):
     """Represents arbitrary quantum objects as tensor networks.
 
     Tensor networks will be composed of `tensornetwork.Nodes` and
     `tensornetwork.Edges`. Nodes represent n-dimensional arrays whose dimensions
-    are connected with edges to other arrays. An edge thus represents the
+    are connected with edges to other arrays. An edge represents the
     contraction that needs to be carried out between two nodes. The contraction
     of nodes is done in a `lazy` way, which means that is only carried out
     when necessary or explicitly required with the contract method.
@@ -58,14 +33,11 @@ class Network(qutip.core.data.Data):
     dangling `out_edges` and `in_edges` represent the rows and columns of the
     matrix respectively.
 
-    Examples:
-    --------
-
     Notes:
     -----
-    Most of the operations and logic of this class has been borrowed from
-    `tensornetwork.QuOperator`. This class is by no means compatible with
-    `QuOperator` but we probide a method, `as_quoperator()` that returns a view
+    Most of the operations and logic of this class has been derived from
+    `tensornetwork.QuOperator`. However, this class is not compatible with
+    `QuOperator` but we provide a method, `as_quoperator()` that returns a view
     of this class as a `QuOperator`.
     """
 
@@ -73,9 +45,9 @@ class Network(qutip.core.data.Data):
         self,
         out_edges: Sequence[Edge],
         in_edges: Sequence[Edge],
-        ref_nodes: Optional[Collection[AbstractNode]] = None,
-        ignore_edges: Optional[Collection[Edge]] = None) -> None:
-        """Creates a new `QuOperator` from a tensor network.
+        nodes: Optional[Collection[AbstractNode]] = None,
+        copy: Optional[bool] = True) -> None:
+        """Creates a new `Netowork` from a tensor network.
         This encapsulates an existing tensor network, interpreting it as a linear
         operator.
 
@@ -83,69 +55,47 @@ class Network(qutip.core.data.Data):
         in `out_edges`, `in_edges`, or `ignore_edges`.
 
         Args:
-            out_edges: The edges of the network to be used as the output edges.
-            in_edges: The edges of the network to be used as the input edges.
-            ref_nodes: Nodes used to refer to parts of the tensor network that are
-            not connected to any input or output edges (for example: a scalar
-            factor).
-            ignore_edges: Optional collection of dangling edges to ignore when
-            performing consistency checks.
+            out_edges:
+                The edges of the network to be used as the output edges.
+            in_edges:
+                The edges of the network to be used as the input edges.
+            nodes:
+                Nodes of the network. If none provided, the nodes are obtained
+                by finding all the nodes that belong to the networks form by
+                in_edges and out_edges.
         """
-        if len(in_edges) == 0 and len(out_edges) == 0:
-            raise ValueError("Scalaras are not valid Networs in"
-                             "qutip-tensornetwork.")
-        out_dimension = [e for e in out_edges]
-        in_dimension = [e for e in in_edges]
-        if (len(out_dimension)!=len(in_dimension)
-            and len(in_dimension)!=0
-            and len(out_dimension)!=0):
-            raise ValueError("Not a valid Networ: it must have same dimension"
-                             "for in_edges and out_edges")
+        if (len(in_edges) == 0 and len(out_edges) == 0
+            and (nodes is None or len(nodes)==0)):
+            raise ValueError("Since no edges were provided, it was not possible"
+                             "to infer which nodes belong to the network."
+                             "You may want to include a scalar node to represent"
+                             "a matrix with shape")
 
+        # I need to check that edges are unique
         self.out_edges = list(out_edges)
         self.in_edges = list(in_edges)
-        self.ignore_edges = set(ignore_edges) if ignore_edges else set()
-        self.ref_nodes = set(ref_nodes) if ref_nodes else set()
-        self._check_network()
 
+        # Unlike in QuOperator we will keep track of the nodes instead of
+        # dynamically searching for them when necessary. This is because
+        # searching all nodes in a large graph can be quite expensive while
+        # keeping track of them with network operations is straightforward.
+        self.nodes = set(nodes) if nodes else tn.reachable(self.in_edges
+                                                         + self.out_edges)
 
-    @property
-    def shape(self):
-        return (np.prod(self.dims[0], dtype=int),
-                np.prod(self.dims[1], dtype=int))
+        self._check_edge_nodes_in_nodes()
+        self._check_in_out_are_dangling()
+        self._check_only_in_out_are_dangling()
+        self._check_edges_unique()
+        # I may need extra check such as for backends etc in the future
 
-    @classmethod
-    def from_tensor(
-        cls,
-        tensor: Tensor,
-        out_axes: Sequence[int],
-        in_axes: Sequence[int],
-        backend: Optional[Text] = None,
-        name: Optional[Text] = None) -> "QuOperator":
-        """Construct a `QuOperator` directly from a single tensor.
+        # TODO: should this be a porperty obtained from dims?
+        super().__init__(shape=(np.prod(self.dims[0]), np.prod(self.dims[1])))
 
-        This first wraps the tensor in a `Node`, then constructs the `QuOperator`
-        from that `Node`.
-
-        Args:
-            tensor: The tensor.
-            out_axes: The axis indices of `tensor` to use as `out_edges`.
-            in_axes: The axis indices of `tensor` to use as `in_edges`.
-            backend: Optionally specify the backend to use for computations.
-        Returns:
-            The new operator.
-        """
-        n = Node(tensor, name=name, backend=backend)
-        out_edges = [n[i] for i in out_axes]
-        in_edges = [n[i] for i in in_axes]
-        return cls(out_edges, in_edges, set([n]))
-
-    @property
-    def nodes(self) -> Set[AbstractNode]:
-        """All tensor-network nodes involved in the operator."""
-        return reachable(
-            get_all_nodes(self.out_edges + self.in_edges) | self.ref_nodes)
-
+        if copy:
+            node_dict, edge_dict = tn.copy(self.nodes)
+            self.nodes = set(node_dict[n] for n in self.nodes)
+            self.in_edges = [edge_dict[e] for e in self.in_edges]
+            self.out_edges = [edge_dict[e] for e in self.out_edges]
 
     @property
     def dims(self) -> List[List[int]]:
@@ -153,71 +103,242 @@ class Network(qutip.core.data.Data):
         in_space = [e.dimension for e in self.in_edges]
         return [out_space, in_space]
 
-    def _check_network(self) -> None:
-        """Check that the network has the expected dimensionality.
-
-        This checks that all input and output edges are dangling and that
-        there are no other dangling edges (except any specified in
-        `ignore_edges`). If not, an exception is raised.
-        """
+    def _check_in_out_are_dangling(self) -> None:
         for (i, e) in enumerate(self.out_edges):
           if not e.is_dangling():
             raise ValueError("Output edge {} is not dangling!".format(i))
         for (i, e) in enumerate(self.in_edges):
           if not e.is_dangling():
             raise ValueError("Input edge {} is not dangling!".format(i))
-        for e in self.ignore_edges:
-          if not e.is_dangling():
-            raise ValueError("ignore_edges contains non-dangling edge: {}".format(
-                str(e)))
 
-        known_edges = set(self.in_edges) | set(self.out_edges) | self.ignore_edges
+    def _check_only_in_out_are_dangling(self):
+        known_edges = set(self.in_edges + self.out_edges)
         all_dangling_edges = get_subgraph_dangling(self.nodes)
         if known_edges != all_dangling_edges:
-          raise ValueError("The network includes unexpected dangling edges (that "
-                           "are not members of ignore_edges).")
+            unexpected_edges = all_dangling_edges.difference(known_edges)
+            raise ValueError("The network includes unexpected dangling edges."
+                            + str(unexpected_edges))
 
-    def conj(self) -> "Network":
-        raise NotImplementedError()
+    def _check_edges_unique(self):
+        """Check that in_edges and out_edges are unique."""
+        if (len(set(self.in_edges)) != len(self.in_edges) or
+            len(set(self.out_edges)) != len(self.out_edges)):
+            raise ValueError("The edges included as in_edges and out_edges"
+                             "are not unique.")
 
-    def transopose(self) -> "Network":
-        raise NotImplementedError()
+    def _check_edge_nodes_in_nodes(self):
+        edges = self.in_edges + self.out_edges
+        if not set(e.node1 for e in edges) <= self.nodes:
+            raise ValueError("The nodes for in_edges and out_edges are not "
+                             "included in the passed nodes.")
 
-    # TODO: this does not return a copy
     def copy(self) -> "Network":
-        return self
+        node_dict, edge_dict = tn.copy(self.nodes)
+        nodes = set(node_dict[n] for n in self.nodes)
+        in_edges = [edge_dict[e] for e in self.in_edges]
+        out_edges = [edge_dict[e] for e in self.out_edges]
 
-    def from_np_array(self, array) -> "Network":
-        raise NotImplementedError()
+        return Network._fast_constructor(out_edges, in_edges, nodes, self.shape)
+
+    @classmethod
+    def _fast_constructor(cls, out_edges, in_edges, nodes, shape):
+        """Fast contructor for a Network. This is inherently unsafe and should
+        only be used if it is known wit absolute certainty that the input edges
+        and nodes form a correct Network. For example, after a matmul
+        operation with two valid networks.
+        """
+        out = cls.__new__(cls)
+        out.in_edges = in_edges
+        out.out_edges = out_edges
+        out.nodes = nodes
+        qutip.core.data.Data.__init__(out, shape)
+
+        return out
 
     def _repr_svg_(self):
-        # Dot engine seems to be prettier than neato to draw our graphs.
         return to_graphviz(self.nodes, engine='dot')._repr_svg_()
 
-    def adjoint(self) -> "Network":
-        """The adjoint of the operator.
+    def conj(self) -> "Network":
+        node_dict, edge_dict = tn.copy(self.nodes, conjugate=True)
+        nodes = set(node_dict[n] for n in self.nodes)
+        in_edges = [edge_dict[e] for e in self.in_edges]
+        out_edges = [edge_dict[e] for e in self.out_edges]
 
-        This creates a new `QuOperator` with complex-conjugate copies of all
-        tensors in the network and with the input and output edges switched.
-        """
-        nodes_dict, edge_dict = copy(self.nodes, True)
-        out_edges = [edge_dict[e] for e in self.in_edges]
+        return Network._fast_constructor(out_edges, in_edges, nodes, self.shape)
+
+    def transopose(self) -> "Network":
+        node_dict, edge_dict = tn.copy(self.nodes, conjugate=False)
+        nodes = set(node_dict[n] for n in self.nodes)
         in_edges = [edge_dict[e] for e in self.out_edges]
-        ref_nodes = [nodes_dict[n] for n in self.ref_nodes]
-        ignore_edges = [edge_dict[e] for e in self.ignore_edges]
-        return Network(out_edges, in_edges, ref_nodes, ignore_edges)
+        out_edges = [edge_dict[e] for e in self.in_edges]
+        shape = (self.shape[1], self.shape[0])
+
+        return Network._fast_constructor(out_edges, in_edges, nodes, shape)
+
+    def adjoint(self) -> "Network":
+        node_dict, edge_dict = tn.copy(self.nodes, conjugate=True)
+        nodes = set(node_dict[n] for n in self.nodes)
+        in_edges = [edge_dict[e] for e in self.out_edges]
+        out_edges = [edge_dict[e] for e in self.in_edges]
+        shape = (self.shape[1], self.shape[0])
+
+        return Network._fast_constructor(out_edges, in_edges, nodes, shape)
+
+    def contract(
+        self,
+        contractor: Callable = greedy,
+        final_edge_order: Optional[Sequence[Edge]] = None,
+        ) -> "Network":
+        """Return the contracted version of the tensor network.
+
+        Parameters
+        ----------
+        contractor:
+            A function that performs the contraction. Defaults to
+            `greedy`, which uses the greedy algorithm from `opt_einsum` to
+            determine a contraction order.
+
+        Returns:
+            A contracted version of the network with a single node.
+
+        See also:
+            tensornetwork.contractor: internally this is the function that is
+            called for the contraction.
+
+        """
+        # TODO: I will use a different approach and just remove
+        # identities on after a matmul operation.  
+
+        # nodes_dict, dangling_edges_dict = eliminate_identities(self.nodes)
+        nodes_dict, edges_dict = tn.copy(self.nodes)
+
+        in_edges = [edges_dict[e] for e in self.in_edges]
+        out_edges = [edges_dict[e] for e in self.out_edges]
+        nodes = set(nodes_dict[n] for n in self.nodes if n in nodes_dict)
+
+        if final_edge_order is not None:
+            final_edge_order = [edges_dict[e] for e in final_edge_order]
+            nodes = set(
+                [contractor(nodes, output_edge_order=final_edge_order)])
+        else:
+            nodes = set([contractor(nodes, ignore_edge_order=True)])
+
+        return Network._fast_constructor(out_edges, in_edges, nodes, self.shape)
+
+    def to_array(self,
+        contractor: Callable = greedy,
+        ) -> Tensor:
+        """Returns a 2D array that represents the contraction of the
+        tensor network.
+
+        The ordering for the axes of the final array is:
+          `*out_edges, *in_edges`.
+
+        Args:
+          contractor: A function that performs the contraction. Defaults to
+            `greedy`, which uses the greedy algorithm from `opt_einsum` to
+            determine a contraction order.
+        Returns:
+          The final tensor representing the operator.
+        """
+        final_edge_order = self.out_edges + self.in_edges
+        network = self.contract(contractor, final_edge_order=final_edge_order)
+        nodes = network.nodes
+        if len(nodes) != 1:
+          raise ValueError("Node count '{}' > 1 after contraction!".format(
+              len(nodes)))
+        array = list(nodes)[0].tensor
+
+        return array.reshape(self.shape)
+
+    @classmethod
+    def from_2d_array(cls, array):
+        """Create a network from a 2D, 1D or scalar array. This network will
+        have a single node with out_edges refering to the first index of the
+        array and in_edges refering to the second index of the array. If any of
+        those has dimension 1, it is ignored when creating in_edges or
+        out_edges.
+
+        Parameters
+        ----------
+        array: ndarray or Data
+            Array from which the single node of the network is created.
+
+        Returns
+        -------
+        network: Network
+            Instance of Network with a single node represeting array.
+
+        Examples
+        --------
+        >>> array = np.array((2, 2))
+        >>> net = Network.from_2d_array(array)
+        >>> net.dims
+        [[2], [2]]
+
+        One dimensional arrays are understoof as kets and cero dimensional ones
+        as scalars.
+        >>> array = np.array((2)) # ket
+        >>> net = Network.from_2d_array(array)
+        >>> net.dims
+        [[2], []]
+
+        If the array has one dimension being 1, it is reshaped before the
+        Network instantiation.
+        >>> array = np.array((2, 1)) # ket
+        >>> net = Network.from_2d_array(array)
+        >>> net.dims
+        [[2], []]
+        """
+
+        if isinstance(array, qutip.data.Data):
+            array = array.to_array()
+        elif not isinstance(array, np.ndarray):
+            raise ValueError("`array` is not instance of Data or np.array.")
+
+        shape = array.shape
+        if len(shape) > 2:
+            raise ValueError("This method only works with 2D, 1D or scalar "
+                             "arrays but the"
+                             "input has " + str(len(array.shape)) + "dimensions")
+
+        if len(shape)==1:
+            node = tn.Node(array)
+            return Network(node[:], [])
+
+        if len(shape)==0:
+            node = tn.Node(array)
+            return Network([], [], [node])
+
+        if array.shape[0]==1 and array.shape[1]!=1:
+            array = array.reshape(array.shape[1])
+            node = tn.Node(array)
+            return Network([], node[:])
+
+        elif array.shape[0]!=1 and array.shape[1]==1:
+            array = array.reshape(array.shape[0])
+            node = tn.Node(array)
+            return Network(node[:], [])
+
+        elif array.shape[0]==1 and array.shape[1]==1:
+            array = array.reshape(())
+            node = tn.Node(array)
+            return Network([], [], nodes=[node])
+
+        else:
+            node = tn.Node(array)
+            return Network(node[0:1], node[1:])
 
     def trace(self) -> "scalar":
-        """The trace of the operator."""
-        return self.partial_trace(range(len(self.in_edges))).to_array()
+        raise NotImplementedError()
 
     def norm(self) -> "scalar":
-        """The norm of the operator.
+        raise NotImplementedError()
 
-        This is the 2-norm (also known as the Frobenius or Hilbert-Schmidt
-        norm).
-        """
-        return (self.adjoint() @ self).trace()
+    def as_quoperator(self):
+        # TODO: This can not be implemented unless tensornetwork includes the 
+        # __init__ file for the quantum module.
+        raise NotImplementedError()
 
     def partial_trace(
         self,
@@ -236,6 +357,7 @@ class Network(qutip.core.data.Data):
         Returns:
           A new QuOperator or QuScalar representing the result.
         """
+        raise NotImplementedError() # This is yet not Implemented
         out_edges_trace = [self.out_edges[i] for i in subsystems_to_trace_out]
         in_edges_trace = [self.in_edges[i] for i in subsystems_to_trace_out]
 
@@ -257,36 +379,40 @@ class Network(qutip.core.data.Data):
 
         return Network(out_edges, in_edges, ref_nodes, ignore_edges)
 
-    def __matmul__(self, other: "QuOperator") -> "QuOperator":
-        """The action of this operator on another.
+    def __matmul__(self, other: "Network") -> "Network":
+        """The action of this network on another.
 
-        Given `QuOperator`s `A` and `B`, produces a new `QuOperator` for `A @ B`,
+        Given `Network`s `A` and `B`, produces a new `Network` for `A @ B`,
         where `A @ B` means: "the action of A, as a linear operator, on B".
 
-        Under the hood, this produces copies of the tensor networks defining `A`
-        and `B` and then connects the copies by hooking up the `in_edges` of
-        `A.copy()` to the `out_edges` of `B.copy()`.
+        Note:
+        -----
+            Under the hood, this produces copies of the tensor networks
+            defining `A` and `B` and then connects the copies by hooking up the
+            `in_edges` of `A.copy()` to the `out_edges` of `B.copy()`.
         """
-        check_spaces(self.in_edges, other.out_edges)
-
         # Copy all nodes involved in the two operators.
         # We must do this separately for self and other, in case self and other
         # are defined via the same network components (e.g. if self === other).
-        nodes_dict1, edges_dict1 = copy(self.nodes, False)
-        nodes_dict2, edges_dict2 = copy(other.nodes, False)
+        new_nodes_self, new_edges_self = tn.copy(self.nodes, False)
+        new_nodes_other, new_edges_other = tn.copy(other.nodes, False)
+
+        in_edges = [new_edges_self[e] for e in self.in_edges]
+        out_edges = [new_edges_other[e] for e in other.out_edges]
+
+        out_edges, in_edges = _match_edges_by_split(out_edges, in_edges)
 
         # connect edges to create network for the result
-        for (e1, e2) in zip(self.in_edges, other.out_edges):
-          _ = edges_dict1[e1] ^ edges_dict2[e2]
+        for (e_in, e_out) in zip(in_edges, out_edges):
+          _ = e_in ^ e_out
 
-        in_edges = [edges_dict2[e] for e in other.in_edges]
-        out_edges = [edges_dict1[e] for e in self.out_edges]
-        ref_nodes = ([n for _, n in nodes_dict1.items()] +
-                     [n for _, n in nodes_dict2.items()])
-        ignore_edges = ([edges_dict1[e] for e in self.ignore_edges] +
-                        [edges_dict2[e] for e in other.ignore_edges])
+        in_edges = [new_edges_other[e] for e in other.in_edges]
+        out_edges = [new_edges_self[e] for e in self.out_edges]
+        nodes = set([new_nodes_self[n] for n in self.nodes] +
+                    [new_nodes_other[n] for n in other.nodes])
+        shape = (self.shape[0], other.shape[1])
 
-        return Network(out_edges, in_edges, ref_nodes, ignore_edges)
+        return Network._fast_constructor(out_edges, in_edges, nodes, shape)
 
     def tensor(self, other: "Network") -> "Network":
         """Tensor product with another operator.
@@ -321,110 +447,97 @@ class Network(qutip.core.data.Data):
 
         return Network(out_edges, in_edges, ref_nodes, ignore_edges)
 
-    def contract(
-        self,
-        contractor: Callable = greedy,
-        final_edge_order: Optional[Sequence[Edge]] = None) -> "QuOperator":
-        """Contract the tensor network in place.
-
-        This modifies the tensor network representation of the operator (or vector,
-        or scalar), reducing it to a single tensor, without changing the value.
-
-        Args:
-          contractor: A function that performs the contraction. Defaults to
-            `greedy`, which uses the greedy algorithm from `opt_einsum` to
-            determine a contraction order.
-          final_edge_order: Manually specify the axis ordering of the final tensor.
-        Returns:
-          The present object.
-        """
-        nodes_dict, dangling_edges_dict = eliminate_identities(self.nodes)
-        self.in_edges = [dangling_edges_dict[e] for e in self.in_edges]
-        self.out_edges = [dangling_edges_dict[e] for e in self.out_edges]
-        self.ignore_edges = set(dangling_edges_dict[e] for e in self.ignore_edges)
-        self.ref_nodes = set(
-            nodes_dict[n] for n in self.ref_nodes if n in nodes_dict)
-        self._check_network()
-
-        if final_edge_order:
-          final_edge_order = [dangling_edges_dict[e] for e in final_edge_order]
-          self.ref_nodes = set(
-              [contractor(self.nodes, output_edge_order=final_edge_order)])
-        else:
-          self.ref_nodes = set([contractor(self.nodes, ignore_edge_order=True)])
-        return self
-
-
-
-
-    def to_array(self,
-        contractor: Callable = greedy,
-        final_edge_order: Optional[Sequence[Edge]] = None) -> Tensor:
-        """Contracts the tensor network in place and returns the final tensor.
-
-        Note that this modifies the tensor network representing the operator.
-
-        The default ordering for the axes of the final tensor is:
-          `*out_edges, *in_edges`.
-
-        If there are any "ignored" edges, their axes come first:
-          `*ignored_edges, *out_edges, *in_edges`.
-
-        Args:
-          contractor: A function that performs the contraction. Defaults to
-            `greedy`, which uses the greedy algorithm from `opt_einsum` to
-            determine a contraction order.
-          final_edge_order: Manually specify the axis ordering of the final tensor.
-            The default ordering is determined by `out_edges` and `in_edges` (see
-            above).
-        Returns:
-          The final tensor representing the operator.
-        """
-        if not final_edge_order:
-          final_edge_order = (
-              list(self.ignore_edges) + self.out_edges + self.in_edges)
-        self.contract(contractor, final_edge_order)
-        nodes = self.nodes
-        if len(nodes) != 1:
-          raise ValueError("Node count '{}' > 1 after contraction!".format(
-              len(nodes)))
-        array = list(nodes)[0].tensor
-
-        return array.reshape(self.shape)
 
     def as_quoperator(self):
         return NotImplementedError()
 
-def check_spaces(edges_1: Sequence[Edge], edges_2: Sequence[Edge]) -> None:
-    """Check the vector spaces represented by two lists of edges are compatible.
-
-    The number of edges must be the same and the dimensions of each pair of edges
-    must match. Otherwise, an exception is raised.
+def _match_edges_by_split(out_edges, in_edges):
+    """Split the edges in out_edges and in_edges to allow matrix
+    multiplication. This is done reshaping nodes by spliting in_edges and out
+    edges.
 
     Args:
-    edges_1: List of edges representing a many-body Hilbert space.
-    edges_2: List of edges representing a many-body Hilbert space.
+    -----
+        out_edges:
+            List of ``Edges``.
+        in_edges:
+            List of ``Edges``.
+
+    Examples:
+    ---------
+
     """
-    if len(edges_1) != len(edges_2):
-        raise ValueError("Hilbert-space mismatch: Cannot connect {} subsystems "
-                        "with {} subsystems.".format(len(edges_1), len(edges_2)))
+    # Shallow copy to allow popping from out_edges
+    _out_edges = out_edges[:]
+    _in_edges = in_edges[:]
 
-    for (i, (e1, e2)) in enumerate(zip(edges_1, edges_2)):
-        if e1.dimension != e2.dimension:
-            raise ValueError("Hilbert-space mismatch on subsystems {}: Input "
-                            "dimension {} != output dimension {}.".format(
-                            i, e1.dimension, e2.dimension))
-    def reshape(self, dims):
-        """Reshapes the in_edges and out_edges both input and outputs to the
-        given shape. It does so by spliting the `in_edges` and `out_edges`
-        and reshaping the nodes connected to those edges.
+    new_in_edges = []
+    new_out_edges = []
 
-        Only spliting of edges is allowed in the reshape.
-        """
-        return NotImplementedError()
+    if len(_in_edges) == 0 and len(_out_edges)==0:
+        return _out_edges, _in_edges
 
-def _check_matmul_compatible(dims_out, dims_in):
-    """For two dimensions to be compatible they must have same shape and a mcm."""
+    if len(_in_edges) == 0 or len(_out_edges)==0:
+        in_dims = [dim.dimension for dim in _in_edges]
+        out_dims = [dim.dimension for dim in _out_edges]
+        raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+                         str(in_dims) + " whereas for out_edges: "+str(out_dims))
+    
+    e_in = in_edges.pop()
+    e_out = out_edges.pop()
+
+    try:
+        while True:
+
+            if e_in.dimension == e_out.dimension:
+                new_in_edges.append(e_in)
+                new_out_edges.append(e_out)
+
+                if len(in_edges) == 0 and len(out_edges) == 0:
+                    break
+
+                e_in = in_edges.pop()
+                e_out = out_edges.pop()
+
+
+            elif e_in.dimension > e_out.dimension:
+                # IndexError will be caught and by try/except which will then
+                # raise the appropriate error
+                if e_in.dimension%e_out.dimension != 0:
+                    raise IndexError()
+                else:
+                    new_shape=(e_out.dimension, e_in.dimension//e_out.dimension)
+                    new_e_in, e_in = tn.split_edge(e_in, shape=new_shape)
+
+                    new_out_edges.append(e_out)
+                    new_in_edges.append(new_e_in)
+
+                    e_out = out_edges.pop()
+
+            elif e_in.dimension < e_out.dimension:
+                # IndexError will be caught and by try/except which will then
+                # raise the appropriate error
+                if e_out.dimension%e_in.dimension != 0:
+                    raise IndexError()
+                else:
+                    new_shape=(e_in.dimension, e_out.dimension//e_in.dimension)
+                    new_e_out, e_out = tn.split_edge(e_out, shape=new_shape)
+
+                    new_out_edges.append(new_e_out)
+                    new_in_edges.append(e_in)
+
+                    e_in = in_edges.pop()
+
+    except IndexError:
+        in_dims = [dim for dim in in_edges]
+        out_dims = [dim for dim in out_edges]
+        raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+                         str(in_dims) + " whereas for out_edges: "+str(out_dims))
+
+
+    new_out_edges.reverse()
+    new_in_edges.reverse()
+    return new_out_edges, new_in_edges
 
 
 def eliminate_identities(nodes: Collection[AbstractNode]) -> Tuple[dict, dict]:
@@ -434,17 +547,17 @@ def eliminate_identities(nodes: Collection[AbstractNode]) -> Tuple[dict, dict]:
     Only identities that are connected to other nodes are eliminated.
 
     Args:
-    nodes: Collection of nodes to search.
+        nodes: Collection of nodes to search.
     Returns:
-    nodes_dict: Dictionary mapping remaining Nodes to any replacements.
-    dangling_edges_dict: Dictionary specifying all dangling-edge replacements.
+        nodes_dict: Dictionary mapping remaining Nodes to any replacements.
+        dangling_edges_dict: Dictionary specifying all dangling-edge replacements.
     """
     nodes_dict = {}
     dangling_edges_dict = {}
     for n in nodes:
-        if (isinstance(n, CopyNode)
-            and n.get_rank() == 2
-            and not (n[0].is_dangling() and n[1].is_dangling())):
+        if isinstance(
+            n, CopyNode) and n.get_rank() == 2 and not (n[0].is_dangling() and
+                                                        n[1].is_dangling()):
             old_edges = [n[0], n[1]]
             _, new_edges = remove_node(n)
             if 0 in new_edges and 1 in new_edges:

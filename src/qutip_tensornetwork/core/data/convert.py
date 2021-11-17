@@ -1,7 +1,7 @@
 import qutip
 from .network import Network
 from qutip_tensornetwork.quantum import QuOperator
-from tensornetwork import Node
+import tensornetwork as tn
 
 # Conversion functions from QuOperators to Network data class.
 def is_quoperator(quoperator):
@@ -14,18 +14,23 @@ def from_quoperator(quoperator):
 # Conversion function
 def _network_from_dense(dense):
     array = dense.to_array()
-    if array.shape[0]==1:
+    if array.shape[0]==1 and array.shape[1]!=1:
         array = array.reshape(array.shape[1])
-        node = Node(array)
+        node = tn.Node(array)
         return Network([], node[:])
 
-    elif array.shape[1]==1:
+    elif array.shape[0]!=1 and array.shape[1]==1:
         array = array.reshape(array.shape[0])
-        node = Node(array)
+        node = tn.Node(array)
         return Network(node[:], [])
 
+    elif array.shape[0]==1 and array.shape[1]==1:
+        array = array.reshape(())
+        node = tn.Node(array)
+        return Network([], [], nodes=[node])
+
     else:
-        node = Node(array)
+        node = tn.Node(array)
         return Network(node[0:1], node[1:])
 
 def _network_to_dense(network):
