@@ -448,16 +448,13 @@ class Network(qutip.core.data.Data):
         return Network(out_edges, in_edges, ref_nodes, ignore_edges)
 
 
-    def as_quoperator(self):
-        return NotImplementedError()
-
 def _match_edges_by_split(out_edges, in_edges):
     """Split the edges in out_edges and in_edges to allow matrix
     multiplication. This is done reshaping nodes by spliting in_edges and out
     edges.
 
-    Args:
-    -----
+    Parameters
+    ----------
         out_edges:
             List of ``Edges``.
         in_edges:
@@ -482,7 +479,7 @@ def _match_edges_by_split(out_edges, in_edges):
         out_dims = [dim.dimension for dim in _out_edges]
         raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
                          str(in_dims) + " whereas for out_edges: "+str(out_dims))
-    
+
     e_in = in_edges.pop()
     e_out = out_edges.pop()
 
