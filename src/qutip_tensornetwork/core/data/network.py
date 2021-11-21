@@ -20,7 +20,7 @@ __all__ = ['Network']
 class Network(qutip.core.data.Data):
     """Represents arbitrary quantum objects as tensor networks.
 
-    Tensor networks will be composed of `tensornetwork.Nodes` and
+    Tensor networks will be composed of ``tensornetwork.Nodes`` and
     `tensornetwork.Edges`. Nodes represent n-dimensional arrays whose dimensions
     are connected with edges to other arrays. An edge represents the
     contraction that needs to be carried out between two nodes. The contraction
@@ -33,11 +33,28 @@ class Network(qutip.core.data.Data):
     dangling `out_edges` and `in_edges` represent the rows and columns of the
     matrix respectively.
 
+    Attributes
+    ----------
+    nodes : set of Nodes
+        Nodes that belong to the Network. These can either be reachable from
+        in_edges and out_edges or scalar nodes, in which case they have no
+        edges.
+
+    out_edges : list of Edges
+        List of 
+
+    in_edges : list of Edges
+        List of the Edges that represent 
+
+    dims : list of int
+
+    shape : tuple of int
+
     Notes
     -----
     Most of the operations and logic of this class has been derived from
-    `tensornetwork.QuOperator`. However, this class is not compatible with
-    `QuOperator` but we provide a method, `as_quoperator()` that returns a view
+    ``tensornetwork.quantum.QuOperator``. However, this class is not compatible with
+    ``QuOperator`` but we provide a method, ``as_quoperator()`` that returns a view
     of this class as a `QuOperator`.
     """
 
@@ -47,22 +64,29 @@ class Network(qutip.core.data.Data):
         in_edges: Sequence[Edge],
         nodes: Optional[Collection[AbstractNode]] = None,
         copy: Optional[bool] = True) -> None:
-        """Creates a new `Netowork` from a tensor network.
+        """Creates a new `Network` from a tensor network.
         This encapsulates an existing tensor network, interpreting it as a linear
         operator.
 
         The network is checked for consistency: All dangling edges must either be
         in `out_edges`, `in_edges`, or `ignore_edges`.
 
-        Args:
-            out_edges:
-                The edges of the network to be used as the output edges.
-            in_edges:
-                The edges of the network to be used as the input edges.
-            nodes:
-                Nodes of the network. If none provided, the nodes are obtained
-                by finding all the nodes that belong to the networks form by
-                in_edges and out_edges.
+        Parameters
+        ----------
+        out_edges: List of Edges
+            The edges of the network to be used as the output edges.
+
+        in_edges: List of Edges
+            The edges of the network to be used as the input edges.
+
+        nodes: None or List of Nodes
+            Nodes of the network. If None, the nodes are obtained
+            by finding all the nodes that belong to the graphs that include
+            in_edges and out_edges.
+
+        copy: bool, default True
+            Whether to copy all the ``Nodes``/``Edges`` involved in the
+            network.
         """
         if (len(in_edges) == 0 and len(out_edges) == 0
             and (nodes is None or len(nodes)==0)):
@@ -71,7 +95,6 @@ class Network(qutip.core.data.Data):
                              "You may want to include a scalar node to represent"
                              "a matrix with shape")
 
-        # I need to check that edges are unique
         self.out_edges = list(out_edges)
         self.in_edges = list(in_edges)
 
@@ -133,6 +156,13 @@ class Network(qutip.core.data.Data):
                              "included in the passed nodes.")
 
     def copy(self) -> "Network":
+        """
+        Returns
+        -------
+        Network
+            Returns a shallow copy of the Network. That is, tensors stored in
+            ``tensornetwork.Nodes`` is not copied.
+        """
         node_dict, edge_dict = tn.copy(self.nodes)
         nodes = set(node_dict[n] for n in self.nodes)
         in_edges = [edge_dict[e] for e in self.in_edges]
@@ -142,10 +172,10 @@ class Network(qutip.core.data.Data):
 
     @classmethod
     def _fast_constructor(cls, out_edges, in_edges, nodes, shape):
-        """Fast contructor for a Network. This is inherently unsafe and should
-        only be used if it is known wit absolute certainty that the input edges
-        and nodes form a correct Network. For example, after a matmul
-        operation with two valid networks.
+        """Fast constructor for a Network. This is unsafe and should only be
+        used if it is known wit absolute certainty that the input edges and
+        nodes form a correct Network. For example, after a matmul operation
+        with two valid networks.
         """
         out = cls.__new__(cls)
         out.in_edges = in_edges
@@ -159,6 +189,15 @@ class Network(qutip.core.data.Data):
         return to_graphviz(self.nodes, engine='dot')._repr_svg_()
 
     def conj(self) -> "Network":
+        """Returns the conjugate of the network.
+
+        The output consists on the conjugation of the nodes.
+
+        Returns
+        -------
+        Network
+            A network that represents the conjugation of the input.
+        """
         node_dict, edge_dict = tn.copy(self.nodes, conjugate=True)
         nodes = set(node_dict[n] for n in self.nodes)
         in_edges = [edge_dict[e] for e in self.in_edges]
@@ -167,6 +206,18 @@ class Network(qutip.core.data.Data):
         return Network._fast_constructor(out_edges, in_edges, nodes, self.shape)
 
     def transopose(self) -> "Network":
+        """Returns the transpose of the network.
+
+        The output consists on the transpose of ``in_edges`` and
+        ``out_edges`` such that:
+
+        ``new_in_edges, new_out_edges = in_edges, out_edges``
+
+        Returns
+        -------
+        Network
+            A network that represents the transpose of the input.
+        """
         node_dict, edge_dict = tn.copy(self.nodes, conjugate=False)
         nodes = set(node_dict[n] for n in self.nodes)
         in_edges = [edge_dict[e] for e in self.out_edges]
@@ -176,6 +227,18 @@ class Network(qutip.core.data.Data):
         return Network._fast_constructor(out_edges, in_edges, nodes, shape)
 
     def adjoint(self) -> "Network":
+        """Returns the adjoint of the network.
+
+        The output consists on the conjugation of all nodes and the transpose
+        of the ``in_edges`` and ``out_edges`` such that:
+
+        ``new_in_edges, new_out_edges = in_edges, out_edges``
+
+        Returns
+        -------
+        Network
+            A network that represents the adjoint of the input.
+        """
         node_dict, edge_dict = tn.copy(self.nodes, conjugate=True)
         nodes = set(node_dict[n] for n in self.nodes)
         in_edges = [edge_dict[e] for e in self.out_edges]
@@ -193,22 +256,22 @@ class Network(qutip.core.data.Data):
 
         Parameters
         ----------
-        contractor:
+        contractor: Callable
             A function that performs the contraction. Defaults to
-            `greedy`, which uses the greedy algorithm from `opt_einsum` to
-            determine a contraction order.
+            ``tensornetwork.contractor.greedy``, which uses the greedy
+            algorithm from `opt_einsum` to determine a contraction order.
 
-        final_edge_order: List of Edges
+        final_edge_order: iterable of tensornetwork.Edges
 
         Returns
         -------
-        network: ``Network``
+        Network
             A contracted version of the network with a single node.
 
         See also
         --------
-            tensornetwork.contractor: internally this is the function that is
-            called for the contraction.
+            tensornetwork.contractor: This module contains other functions that
+            can be used instead of ``greedy``.
 
         """
         # TODO: I will use a different approach and just remove
@@ -233,18 +296,23 @@ class Network(qutip.core.data.Data):
     def to_array(self,
         contractor: Callable = greedy,
         ) -> Tensor:
-        """Returns a 2D array that represents the contraction of the
-        tensor network.
+        """Returns a 2D array that represents the contraction of the tensor
+        network.
 
         The ordering for the axes of the final array is:
           `*out_edges, *in_edges`.
 
-        Args:
-          contractor: A function that performs the contraction. Defaults to
+        Parameters
+        ----------
+        contractor: tensornetwork.contractor
+            A function that performs the contraction. Defaults to
             `greedy`, which uses the greedy algorithm from `opt_einsum` to
             determine a contraction order.
-        Returns:
-          The final tensor representing the operator.
+
+        Returns
+        -------
+        tensor: numpy.ndarray
+            The final tensor representing the operator.
         """
         final_edge_order = self.out_edges + self.in_edges
         network = self.contract(contractor, final_edge_order=final_edge_order)
@@ -466,10 +534,11 @@ def _match_edges_by_split(out_edges, in_edges):
 
     Parameters
     ----------
-        out_edges:
-            List of ``Edges``.
-        in_edges:
-            List of ``Edges``.
+    out_edges:
+        List of ``Edges``.
+
+    in_edges:
+        List of ``Edges``.
 
     Examples:
     ---------
@@ -559,11 +628,18 @@ def eliminate_identities(nodes: Collection[AbstractNode]) -> Tuple[dict, dict]:
     This will modify the network represented by `nodes`.
     Only identities that are connected to other nodes are eliminated.
 
-    Args:
-        nodes: Collection of nodes to search.
-    Returns:
-        nodes_dict: Dictionary mapping remaining Nodes to any replacements.
-        dangling_edges_dict: Dictionary specifying all dangling-edge replacements.
+    Parameters
+    ----------
+    nodes:
+        Collection of nodes to search.
+
+    Returns
+    -------
+    nodes_dict:
+        Dictionary mapping remaining Nodes to any replacements.
+
+    dangling_edges_dict:
+        Dictionary specifying all dangling-edge replacements.
     """
     nodes_dict = {}
     dangling_edges_dict = {}

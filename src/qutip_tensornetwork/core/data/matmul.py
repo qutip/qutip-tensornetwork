@@ -10,7 +10,13 @@ def matmul_network(left, right, scale=1, out=None):
         ``out := scale * (left @ right) + out``
     where `left`, `right` and `out` are matrices.  `scale` is a complex scalar,
     defaulting to 1. If `out` is not given it is assumed to be 0.
+
+    Notes
+    -----
+    out as parameter is not included yet.
     """
+    # This part of the operation wont be added until we think about what to do
+    # with addition.
     if out is not None:
         raise NotImplementedError()
 
