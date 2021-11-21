@@ -1,6 +1,4 @@
 import numbers
-from typing import Any, Union, Callable, Optional, Sequence, Collection, Text
-from typing import Tuple, Set, List, Type
 
 import qutip
 import numpy as np
@@ -13,7 +11,6 @@ from tensornetwork.network_operations import (get_all_nodes, reachable,
                                              )
 from tensornetwork.network_operations import get_subgraph_dangling
 from tensornetwork.contractors import greedy
-Tensor = Any
 
 __all__ = ['Network']
 
@@ -124,12 +121,12 @@ class Network(qutip.core.data.Data):
                                                           dtype=int))
 
     @property
-    def dims(self) -> List[List[int]]:
+    def dims(self):
         out_space = [e.dimension for e in self.out_edges]
         in_space = [e.dimension for e in self.in_edges]
         return [out_space, in_space]
 
-    def _check_in_out_are_dangling(self) -> None:
+    def _check_in_out_are_dangling(self):
         for (i, e) in enumerate(self.out_edges):
           if not e.is_dangling():
             raise ValueError("output edge {} is not dangling!".format(i))
@@ -158,7 +155,7 @@ class Network(qutip.core.data.Data):
             raise ValueError("the nodes for in_edges and out_edges are not "
                              "included in the passed nodes.")
 
-    def copy(self) -> "Network":
+    def copy(self):
         """
         Returns
         -------
@@ -190,7 +187,7 @@ class Network(qutip.core.data.Data):
     def _repr_svg_(self):
         return to_graphviz(self.nodes, engine='dot')._repr_svg_()
 
-    def conj(self) -> "Network":
+    def conj(self):
         """Returns the conjugate of the network.
 
         The output consists on the conjugation of the nodes.
@@ -207,7 +204,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def transopose(self) -> "Network":
+    def transopose(self):
         """Returns the transpose of the network.
 
         The output consists on the transpose of ``in_edges`` and
@@ -227,7 +224,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def adjoint(self) -> "Network":
+    def adjoint(self):
         """Returns the adjoint of the network.
 
         The output consists on the conjugation of all nodes and the transpose
@@ -247,11 +244,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def contract(
-        self,
-        contractor: Callable = greedy,
-        final_edge_order: Optional[Sequence[Edge]] = None,
-        ) -> "Network":
+    def contract(self, contractor = greedy, final_edge_order = None):
         """Return the contracted version of the tensor network.
 
         Parameters
@@ -293,9 +286,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def to_array(self,
-        contractor: Callable = greedy,
-        ) -> Tensor:
+    def to_array(self, contractor = greedy):
         """Returns a 2D array that represents the contraction of the tensor
         network.
 
@@ -404,20 +395,12 @@ class Network(qutip.core.data.Data):
             node = tn.Node(array)
             return Network(node[0:1], node[1:])
 
-    def trace(self) -> "scalar":
-        raise NotImplementedError()
-
-    def norm(self) -> "scalar":
-        raise NotImplementedError()
-
     def as_quoperator(self):
         # TODO: This can not be implemented unless tensornetwork includes the 
         # __init__ file for the quantum module.
         raise NotImplementedError()
 
-    def partial_trace(
-        self,
-        subsystems_to_trace_out: Collection[int]) -> "Network":
+    def partial_trace(self, subsystems_to_trace_out):
         """NOT IMPLEMENTED YET.
         The partial trace of the operator.
 
@@ -460,7 +443,7 @@ class Network(qutip.core.data.Data):
 
         return Network(out_edges, in_edges, ref_nodes, ignore_edges)
 
-    def __matmul__(self, other: "Network") -> "Network":
+    def __matmul__(self, other):
         """The action of this network on another.
 
         Given ``Network``s `A` and `B`, produces a new ``Network`` for `A @ B`,
@@ -521,7 +504,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def tensor(self, other: "Network") -> "Network":
+    def tensor(self, other):
         """Tensor product with another operator.
 
         Given two operators `A` and `B`, produces a new operator `AB`
