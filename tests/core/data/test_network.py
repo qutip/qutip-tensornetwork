@@ -100,15 +100,6 @@ def test_empty_rises():
     with pytest.raises(ValueError):
        network = Network([], [], nodes=None)
 
-# TODO: discuss this
-# def test_nodes_is_shallow_copy():
-    # array = np.random.random(2)
-    # node = tn.Node(array)
-    # network = Network([node[0]], [])
-    # nodes = network.nodes
-    # assert nodes is not network._nodes
-    # assert nodes.pop() is network._nodes.pop()
-
 def test_copy_in_init():
     node = random_node((2,2))
     network = Network(node[0:1], node[1:], copy=False)
@@ -139,7 +130,7 @@ def test_fast_constructor():
     new_network = Network._fast_constructor(network.out_edges,
                                              network.in_edges,
                                              network.nodes,
-                                             network.shape)
+                                           )
 
     assert network.in_edges is new_network.in_edges
     assert network.out_edges is new_network.out_edges

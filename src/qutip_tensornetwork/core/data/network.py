@@ -21,17 +21,17 @@ class Network(qutip.core.data.Data):
     """Represents arbitrary quantum objects as tensor networks.
 
     Tensor networks will be composed of ``tensornetwork.Nodes`` and
-    `tensornetwork.Edges`. Nodes represent n-dimensional arrays whose dimensions
-    are connected with edges to other arrays. An edge represents the
+    ``tensornetwork.Edges``. Nodes represent n-dimensional arrays whose
+    dimensions are connected with edges to other arrays. An edge represents the
     contraction that needs to be carried out between two nodes. The contraction
-    of nodes is done in a `lazy` way, which means that is only carried out
-    when necessary or explicitly required with the contract method.
+    of nodes is done in a `lazy` way, which means that is only carried out when
+    necessary or explicitly required with the contract method.
 
     Edges can be either dangling (one of its ends is not connected to any node)
-    or fully connected. To represents arbitrary quantum objects, we
-    employ the dangling edges `out_edges` and `in_edges`. Considered as a matrix, the
-    dangling `out_edges` and `in_edges` represent the rows and columns of the
-    matrix respectively.
+    or fully connected. To represents arbitrary quantum objects, we employ the
+    dangling edges ``out_edges`` and ``in_edges``. Considered as a matrix, the
+    dangling ``out_edges`` and ``in_edges`` represent the rows and columns of
+    the matrix respectively.
 
     Attributes
     ----------
@@ -41,30 +41,31 @@ class Network(qutip.core.data.Data):
         edges.
 
     out_edges : list of Edges
-        List of 
+        List of ``Edges`` to be used. When the network is considered as a
+        matrix, these edges represent the rows.
 
     in_edges : list of Edges
-        List of the Edges that represent 
+        List of ``Edges`` to be used. When the network is considered as a
+        matrix, these edges represent the columns.
 
     dims : list of int
+        Dimension of the system as a list of lists. dims[0] represents the
+        out dimensions whereas dims[1] represents the in dimension.
 
     shape : tuple of int
+        Shape that the matrix would have if the network is represented with a
+        matrix.
 
     Notes
     -----
     Most of the operations and logic of this class has been derived from
     ``tensornetwork.quantum.QuOperator``. However, this class is not compatible with
     ``QuOperator`` but we provide a method, ``as_quoperator()`` that returns a view
-    of this class as a `QuOperator`.
+    of this class as a ``QuOperator``.
     """
 
-    def __init__(
-        self,
-        out_edges: Sequence[Edge],
-        in_edges: Sequence[Edge],
-        nodes: Optional[Collection[AbstractNode]] = None,
-        copy: Optional[bool] = True) -> None:
-        """Creates a new `Network` from a tensor network.
+    def __init__(self, out_edges, in_edges, nodes = None, copy = True):
+        """Creates a new ``Network`` from a tensor network.
         This encapsulates an existing tensor network, interpreting it as a linear
         operator.
 
@@ -93,7 +94,7 @@ class Network(qutip.core.data.Data):
             raise ValueError("Since no edges were provided, it was not possible"
                              "to infer which nodes belong to the network."
                              "You may want to include a scalar node to represent"
-                             "a matrix with shape")
+                             "a matrix with shape (1,1).")
 
         self.out_edges = list(out_edges)
         self.in_edges = list(in_edges)
@@ -111,14 +112,16 @@ class Network(qutip.core.data.Data):
         self._check_edges_unique()
         # I may need extra check such as for backends etc in the future
 
-        # TODO: should this be a porperty obtained from dims?
-        super().__init__(shape=(np.prod(self.dims[0]), np.prod(self.dims[1])))
-
         if copy:
             node_dict, edge_dict = tn.copy(self.nodes)
             self.nodes = set(node_dict[n] for n in self.nodes)
             self.in_edges = [edge_dict[e] for e in self.in_edges]
             self.out_edges = [edge_dict[e] for e in self.out_edges]
+
+    @property
+    def shape(self):
+        return (np.prod(self.dims[0], dtype=int), np.prod(self.dims[1],
+                                                          dtype=int))
 
     @property
     def dims(self) -> List[List[int]]:
@@ -129,30 +132,30 @@ class Network(qutip.core.data.Data):
     def _check_in_out_are_dangling(self) -> None:
         for (i, e) in enumerate(self.out_edges):
           if not e.is_dangling():
-            raise ValueError("Output edge {} is not dangling!".format(i))
+            raise ValueError("output edge {} is not dangling!".format(i))
         for (i, e) in enumerate(self.in_edges):
           if not e.is_dangling():
-            raise ValueError("Input edge {} is not dangling!".format(i))
+            raise ValueError("input edge {} is not dangling!".format(i))
 
     def _check_only_in_out_are_dangling(self):
         known_edges = set(self.in_edges + self.out_edges)
         all_dangling_edges = get_subgraph_dangling(self.nodes)
         if known_edges != all_dangling_edges:
             unexpected_edges = all_dangling_edges.difference(known_edges)
-            raise ValueError("The network includes unexpected dangling edges."
+            raise ValueError("the network includes unexpected dangling edges."
                             + str(unexpected_edges))
 
     def _check_edges_unique(self):
         """Check that in_edges and out_edges are unique."""
         if (len(set(self.in_edges)) != len(self.in_edges) or
             len(set(self.out_edges)) != len(self.out_edges)):
-            raise ValueError("The edges included as in_edges and out_edges"
+            raise ValueError("the edges included as in_edges and out_edges"
                              "are not unique.")
 
     def _check_edge_nodes_in_nodes(self):
         edges = self.in_edges + self.out_edges
         if not set(e.node1 for e in edges) <= self.nodes:
-            raise ValueError("The nodes for in_edges and out_edges are not "
+            raise ValueError("the nodes for in_edges and out_edges are not "
                              "included in the passed nodes.")
 
     def copy(self) -> "Network":
@@ -168,10 +171,10 @@ class Network(qutip.core.data.Data):
         in_edges = [edge_dict[e] for e in self.in_edges]
         out_edges = [edge_dict[e] for e in self.out_edges]
 
-        return Network._fast_constructor(out_edges, in_edges, nodes, self.shape)
+        return Network._fast_constructor(out_edges, in_edges, nodes)
 
     @classmethod
-    def _fast_constructor(cls, out_edges, in_edges, nodes, shape):
+    def _fast_constructor(cls, out_edges, in_edges, nodes):
         """Fast constructor for a Network. This is unsafe and should only be
         used if it is known wit absolute certainty that the input edges and
         nodes form a correct Network. For example, after a matmul operation
@@ -181,7 +184,6 @@ class Network(qutip.core.data.Data):
         out.in_edges = in_edges
         out.out_edges = out_edges
         out.nodes = nodes
-        qutip.core.data.Data.__init__(out, shape)
 
         return out
 
@@ -203,7 +205,7 @@ class Network(qutip.core.data.Data):
         in_edges = [edge_dict[e] for e in self.in_edges]
         out_edges = [edge_dict[e] for e in self.out_edges]
 
-        return Network._fast_constructor(out_edges, in_edges, nodes, self.shape)
+        return Network._fast_constructor(out_edges, in_edges, nodes)
 
     def transopose(self) -> "Network":
         """Returns the transpose of the network.
@@ -211,7 +213,7 @@ class Network(qutip.core.data.Data):
         The output consists on the transpose of ``in_edges`` and
         ``out_edges`` such that:
 
-        ``new_in_edges, new_out_edges = in_edges, out_edges``
+        ``new_in_edges, new_out_edges = out_edges, in_edges``
 
         Returns
         -------
@@ -222,9 +224,8 @@ class Network(qutip.core.data.Data):
         nodes = set(node_dict[n] for n in self.nodes)
         in_edges = [edge_dict[e] for e in self.out_edges]
         out_edges = [edge_dict[e] for e in self.in_edges]
-        shape = (self.shape[1], self.shape[0])
 
-        return Network._fast_constructor(out_edges, in_edges, nodes, shape)
+        return Network._fast_constructor(out_edges, in_edges, nodes)
 
     def adjoint(self) -> "Network":
         """Returns the adjoint of the network.
@@ -243,9 +244,8 @@ class Network(qutip.core.data.Data):
         nodes = set(node_dict[n] for n in self.nodes)
         in_edges = [edge_dict[e] for e in self.out_edges]
         out_edges = [edge_dict[e] for e in self.in_edges]
-        shape = (self.shape[1], self.shape[0])
 
-        return Network._fast_constructor(out_edges, in_edges, nodes, shape)
+        return Network._fast_constructor(out_edges, in_edges, nodes)
 
     def contract(
         self,
@@ -291,7 +291,7 @@ class Network(qutip.core.data.Data):
         else:
             nodes = set([contractor(nodes, ignore_edge_order=True)])
 
-        return Network._fast_constructor(out_edges, in_edges, nodes, self.shape)
+        return Network._fast_constructor(out_edges, in_edges, nodes)
 
     def to_array(self,
         contractor: Callable = greedy,
@@ -418,7 +418,8 @@ class Network(qutip.core.data.Data):
     def partial_trace(
         self,
         subsystems_to_trace_out: Collection[int]) -> "Network":
-        """The partial trace of the operator.
+        """NOT IMPLEMENTED YET.
+        The partial trace of the operator.
 
         Subsystems to trace out are supplied as indices, so that dangling edges
         are connected to each other as:
@@ -462,14 +463,41 @@ class Network(qutip.core.data.Data):
     def __matmul__(self, other: "Network") -> "Network":
         """The action of this network on another.
 
-        Given `Network`s `A` and `B`, produces a new `Network` for `A @ B`,
+        Given ``Network``s `A` and `B`, produces a new ``Network`` for `A @ B`,
         where `A @ B` means: "the action of A, as a linear operator, on B".
 
-        Note:
-        -----
-            Under the hood, this produces copies of the tensor networks
-            defining `A` and `B` and then connects the copies by hooking up the
-            `in_edges` of `A.copy()` to the `out_edges` of `B.copy()`.
+        Note
+        ----
+        Under the hood, this produces copies of the tensor networks
+        defining `A` and `B` and then connects the copies by hooking up the
+        ``in_edges`` of ``A.copy()`` to the ``out_edges`` of ``B.copy()``.
+
+        Examples
+        --------
+        Multiplication of two Networks that have same shape but different
+        dimensions is possible in som cases.
+        >>>dim_in = (4)
+        >>>dim_out= (2,2)
+        >>>array = np.random.random()
+        >>>right = tn.Node(np.random.random(dim_in))
+        >>>left = tn.Node(np.random.random(dim_out))
+        >>>right_net = Network(right[:], [])
+        >>>left_net = Network([], left[:])
+        # This operation is valid even though they have different dims.
+        >>>left_net@right_net         
+
+        When the two Networks have same shape but their dims require a
+        transposion of indices in order to match, we raise an error. This is
+        because there may be some ambiguity in how to transpose the required
+        indices.
+        >>>dim_in = (3,2)
+        >>>dim_out= (2,3)
+        >>>array = np.random.random()
+        >>>right = tn.Node(np.random.random(dim_in))
+        >>>left = tn.Node(np.random.random(dim_out))
+        >>>right_net = Network(right[:], [])
+        >>>left_net = Network([], left[:])
+        >>>left_net@right_net # raises ValueError.
         """
         # Copy all nodes involved in the two operators.
         # We must do this separately for self and other, in case self and other
@@ -490,17 +518,16 @@ class Network(qutip.core.data.Data):
         out_edges = [new_edges_self[e] for e in self.out_edges]
         nodes = set([new_nodes_self[n] for n in self.nodes] +
                     [new_nodes_other[n] for n in other.nodes])
-        shape = (self.shape[0], other.shape[1])
 
-        return Network._fast_constructor(out_edges, in_edges, nodes, shape)
+        return Network._fast_constructor(out_edges, in_edges, nodes)
 
     def tensor(self, other: "Network") -> "Network":
         """Tensor product with another operator.
 
-        Given two operators `A` and `B`, produces a new operator `AB` representing
-        `A` ⊗ `B`. The `out_edges` (`in_edges`) of `AB` is simply the
-        concatenation of the `out_edges` (`in_edges`) of `A.copy()` with that of
-        `B.copy()`:
+        Given two operators `A` and `B`, produces a new operator `AB`
+        representing `A` ⊗ `B`. The ``out_edges`` (``in_edges``) of `AB` is
+        simply the concatenation of the `out_edges` (`in_edges`) of
+        ``A.copy()`` with that of ``B.copy()``:
 
         ``new_out_edges = [*out_edges_A_copy, *out_edges_B_copy]``
 
@@ -522,9 +549,8 @@ class Network(qutip.core.data.Data):
         in_edges = [*a.in_edges, *b.in_edges]
         out_edges = [*a.out_edges, *b.out_edges]
         nodes = a.nodes | b.nodes
-        shape = (a.shape[0]*b.shape[0], a.shape[1]*b.shape[1])
 
-        return Network._fast_constructor(out_edges, in_edges, nodes, shape)
+        return Network._fast_constructor(out_edges, in_edges, nodes)
 
 
 def _match_edges_by_split(out_edges, in_edges):
@@ -539,10 +565,6 @@ def _match_edges_by_split(out_edges, in_edges):
 
     in_edges:
         List of ``Edges``.
-
-    Examples:
-    ---------
-
     """
     # Shallow copy to allow popping from out_edges
     _out_edges = out_edges[:]
@@ -558,11 +580,11 @@ def _match_edges_by_split(out_edges, in_edges):
         return _out_edges, _in_edges
 
     if len(_in_edges) == 0 or len(_out_edges)==0:
-        raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+        raise ValueError("edges are not compatible. The dimensions of in_edges: " +
                          str(in_dims) + " whereas for out_edges: "+str(out_dims))
 
     if np.prod(in_dims) != np.product(out_dims):
-        raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+        raise ValueError("edges are not compatible. The dimensions of in_edges: " +
                          str(in_dims) + " whereas for out_edges: "+str(out_dims))
 
     e_in = in_edges.pop()
@@ -585,7 +607,7 @@ def _match_edges_by_split(out_edges, in_edges):
             # IndexError will be caught and by try/except which will then
             # raise the appropriate error
             if e_in.dimension%e_out.dimension != 0:
-                raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+                raise ValueError("edges are not compatible. The dimensions of in_edges: " +
                                  str(in_dims) + " whereas for out_edges: "+str(out_dims))
             else:
                 # new_shape=(e_out.dimension, e_in.dimension//e_out.dimension)
@@ -602,7 +624,7 @@ def _match_edges_by_split(out_edges, in_edges):
             # IndexError will be caught and by try/except which will then
             # raise the appropriate error
             if e_out.dimension%e_in.dimension != 0:
-                raise ValueError("Edges are not compatible. The dimensions of in_edges: " +
+                raise ValueError("edges are not compatible. The dimensions of in_edges: " +
                                  str(in_dims) + " whereas for out_edges: "+str(out_dims))
             else:
                 # new_shape=(e_in.dimension, e_out.dimension//e_in.dimension)
@@ -620,49 +642,3 @@ def _match_edges_by_split(out_edges, in_edges):
     new_out_edges.reverse()
     new_in_edges.reverse()
     return new_out_edges, new_in_edges
-
-
-def eliminate_identities(nodes: Collection[AbstractNode]) -> Tuple[dict, dict]:
-    """Eliminates any connected CopyNodes that are identity matrices.
-
-    This will modify the network represented by `nodes`.
-    Only identities that are connected to other nodes are eliminated.
-
-    Parameters
-    ----------
-    nodes:
-        Collection of nodes to search.
-
-    Returns
-    -------
-    nodes_dict:
-        Dictionary mapping remaining Nodes to any replacements.
-
-    dangling_edges_dict:
-        Dictionary specifying all dangling-edge replacements.
-    """
-    nodes_dict = {}
-    dangling_edges_dict = {}
-    for n in nodes:
-        if isinstance(
-            n, CopyNode) and n.get_rank() == 2 and not (n[0].is_dangling() and
-                                                        n[1].is_dangling()):
-            old_edges = [n[0], n[1]]
-            _, new_edges = remove_node(n)
-            if 0 in new_edges and 1 in new_edges:
-                e = connect(new_edges[0], new_edges[1])
-            elif 0 in new_edges:  # 1 was dangling
-                dangling_edges_dict[old_edges[1]] = new_edges[0]
-            elif 1 in new_edges:  # 0 was dangling
-                dangling_edges_dict[old_edges[0]] = new_edges[1]
-            else:
-                # Trace of identity, so replace with a scalar node!
-                d = n.get_dimension(0)
-                # NOTE: Assume CopyNodes have numpy dtypes.
-                nodes_dict[n] = Node(np.array(d, dtype=n.dtype), backend=n.backend)
-        else:
-            for e in n.get_all_dangling():
-                dangling_edges_dict[e] = e
-            nodes_dict[n] = n
-
-    return nodes_dict, dangling_edges_dict
