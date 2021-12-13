@@ -53,7 +53,7 @@ def assert_network_close(actual, desired, atol=0, rtol=1e-7):
                 assert_no_edge_between(node_dict[edge.node1], node_dict[edge.node2])
 
 def assert_no_edge_between(node1, node2):
-    """Raise an AssertionError if the given nodes do not have an edge connectin
+    """Raise an AssertionError if the given nodes do not have an edge connecting
     them."""
     for edge in node1.edges:
         if edge in node2.edges:
