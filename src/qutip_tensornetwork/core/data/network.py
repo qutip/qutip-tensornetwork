@@ -204,7 +204,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def transopose(self):
+    def transpose(self):
         """Returns the transpose of the network.
 
         The output consists on the transpose of ``in_edges`` and
