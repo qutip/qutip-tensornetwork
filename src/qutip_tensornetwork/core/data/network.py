@@ -30,6 +30,23 @@ class Network(qutip.core.data.Data):
     dangling ``out_edges`` and ``in_edges`` represent the rows and columns of
     the matrix respectively.
 
+    Parameters
+    ----------
+    out_edges: List of Edges
+        The edges of the network to be used as the output edges.
+
+    in_edges: List of Edges
+        The edges of the network to be used as the input edges.
+
+    nodes: None or List of Nodes
+        Nodes of the network. If None, the nodes are obtained
+        by finding all the nodes that belong to the graphs that include
+        ``in_edges`` and ``out_edges``.
+
+    copy: bool, default True
+        Whether to copy all the ``Nodes``/``Edges`` involved in the
+        network.
+
     Attributes
     ----------
     nodes : set of Nodes
@@ -56,36 +73,10 @@ class Network(qutip.core.data.Data):
     Notes
     -----
     Most of the operations and logic of this class has been derived from
-    ``tensornetwork.quantum.QuOperator``. However, this class is not compatible with
-    ``QuOperator`` but we provide a method, ``as_quoperator()`` that returns a view
-    of this class as a ``QuOperator``.
+    ``tensornetwork.quantum.QuOperator`` and adapted for our use.
     """
 
     def __init__(self, out_edges, in_edges, nodes = None, copy = True):
-        """Creates a new ``Network`` from a tensor network.
-        This encapsulates an existing tensor network, interpreting it as a linear
-        operator.
-
-        The network is checked for consistency: All dangling edges must either be
-        in `out_edges` or `in_edges`.
-
-        Parameters
-        ----------
-        out_edges: List of Edges
-            The edges of the network to be used as the output edges.
-
-        in_edges: List of Edges
-            The edges of the network to be used as the input edges.
-
-        nodes: None or List of Nodes
-            Nodes of the network. If None, the nodes are obtained
-            by finding all the nodes that belong to the graphs that include
-            in_edges and out_edges.
-
-        copy: bool, default True
-            Whether to copy all the ``Nodes``/``Edges`` involved in the
-            network.
-        """
         if (len(in_edges) == 0 and len(out_edges) == 0
             and (nodes is None or len(nodes)==0)):
             raise ValueError("Since no edges were provided, it was not possible"
@@ -144,10 +135,10 @@ class Network(qutip.core.data.Data):
 
     def _check_edges_unique(self):
         """Check that in_edges and out_edges are unique."""
-        if (len(set(self.in_edges)) != len(self.in_edges) or
-            len(set(self.out_edges)) != len(self.out_edges)):
+        if (len(set(self.in_edges + self.out_edges)) != len(self.in_edges) +
+            len(self.out_edges)):
             raise ValueError("the edges included as in_edges and out_edges"
-                             "are not unique.")
+                             " are not unique.")
 
     def _check_edge_nodes_in_nodes(self):
         edges = self.in_edges + self.out_edges
@@ -161,7 +152,7 @@ class Network(qutip.core.data.Data):
         -------
         Network
             Returns a shallow copy of the Network. That is, tensors stored in
-            ``tensornetwork.Nodes`` is not copied.
+            ``tensornetwork.Nodes`` are not copied.
         """
         node_dict, edge_dict = tn.copy(self.nodes)
         nodes = set(node_dict[n] for n in self.nodes)
@@ -173,7 +164,7 @@ class Network(qutip.core.data.Data):
     @classmethod
     def _fast_constructor(cls, out_edges, in_edges, nodes):
         """Fast constructor for a Network. This is unsafe and should only be
-        used if it is known wit absolute certainty that the input edges and
+        used if it is known with absolute certainty that the input edges and
         nodes form a correct Network. For example, after a matmul operation
         with two valid networks.
         """
@@ -265,12 +256,7 @@ class Network(qutip.core.data.Data):
         --------
             tensornetwork.contractor: This module contains other functions that
             can be used instead of ``greedy``.
-
         """
-        # TODO: I will use a different approach and just remove
-        # identities on after a matmul operation.  
-
-        # nodes_dict, dangling_edges_dict = eliminate_identities(self.nodes)
         nodes_dict, edges_dict = tn.copy(self.nodes)
 
         in_edges = [edges_dict[e] for e in self.in_edges]
@@ -394,11 +380,6 @@ class Network(qutip.core.data.Data):
         else:
             node = tn.Node(array)
             return Network(node[0:1], node[1:])
-
-    def as_quoperator(self):
-        # TODO: This can not be implemented unless tensornetwork includes the 
-        # __init__ file for the quantum module.
-        raise NotImplementedError()
 
     def partial_trace(self, subsystems_to_trace_out):
         """NOT IMPLEMENTED YET.
