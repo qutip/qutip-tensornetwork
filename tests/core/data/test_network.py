@@ -93,16 +93,8 @@ class TestInit():
         with pytest.raises(ValueError) as e:
            network = Network([], [], nodes=[])
 
-        error_message = ("Since no edges were provided, it was not possible"
-                         " to infer which nodes belong to the network."
-                         " You may want to include a scalar node to represent"
-                         " a matrix with shape (1,1).")
-        assert str(e.value) == error_message
-
         with pytest.raises(ValueError) as e:
            network = Network([], [], nodes=None)
-
-        assert str(e.value) == error_message
 
     def test_copy_in_init(self):
         node = random_node((2,2))
