@@ -89,9 +89,9 @@ class Network(qutip.core.data.Data):
         if (len(in_edges) == 0 and len(out_edges) == 0
             and (nodes is None or len(nodes)==0)):
             raise ValueError("Since no edges were provided, it was not possible"
-                             "to infer which nodes belong to the network."
-                             "You may want to include a scalar node to represent"
-                             "a matrix with shape (1,1).")
+                             " to infer which nodes belong to the network."
+                             " You may want to include a scalar node to represent"
+                             " a matrix with shape (1,1).")
 
         self.out_edges = list(out_edges)
         self.in_edges = list(in_edges)
