@@ -175,13 +175,13 @@ def test_transpose():
     node = random_node((2,3))
     network = Network([node[0]], [node[1]])
 
-    assert network.shape[0] == network.transopose().shape[1]
-    assert network.shape[1] == network.transopose().shape[0]
-    assert network.dims[0] == network.transopose().dims[1]
-    assert network.dims[1] == network.transopose().dims[0]
+    assert network.shape[0] == network.transpose().shape[1]
+    assert network.shape[1] == network.transpose().shape[0]
+    assert network.dims[0] == network.transpose().dims[1]
+    assert network.dims[1] == network.transpose().dims[0]
 
     np.testing.assert_almost_equal(node.tensor,
-                                   network.transopose().nodes.pop().tensor)
+                                   network.transpose().nodes.pop().tensor)
 
 class TestContract():
 
@@ -232,7 +232,7 @@ class TestMatmul:
                              ([2,10], [2,2,5]),
                              ([2], [2]),
                             ])
-    def test_comatible(self, dim_in, dim_out):
+    def test_compatible(self, dim_in, dim_out):
         """Tests that matrix multiplication works with networks that have
         different dimensions. This test does not check for the correct tensor 
         structure but rather that the output is numerically correct once
@@ -243,12 +243,12 @@ class TestMatmul:
         right_net = Network(right[:], [])
         left_net = Network([], left[:])
 
-        result = left_net@right_net
+        result = left_net @ right_net
 
         # Desired
         left = left.tensor.reshape((1, np.prod(dim_out)))
         right = right.tensor.reshape((np.prod(dim_in), 1))
-        desired = left@right
+        desired = left @ right
 
         np.testing.assert_allclose(result.to_array(), desired)
 
@@ -285,7 +285,7 @@ class TestMatmul:
 
     def test_graph_structure(self):
         """The operation tested here can be respresented as a graph in the
-        forllowing way:
+        following way:
         n1 - n3
         n2 - n4
 

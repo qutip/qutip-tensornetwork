@@ -22,7 +22,7 @@ class Network(qutip.core.data.Data):
     dimensions are connected with edges to other arrays. An edge represents the
     contraction that needs to be carried out between two nodes. The contraction
     of nodes is done in a `lazy` way, which means that is only carried out when
-    necessary or explicitly required with the contract method.
+    necessary or explicitly requested with the contract method.
 
     Edges can be either dangling (one of its ends is not connected to any node)
     or fully connected. To represents arbitrary quantum objects, we employ the
@@ -67,7 +67,7 @@ class Network(qutip.core.data.Data):
         operator.
 
         The network is checked for consistency: All dangling edges must either be
-        in `out_edges`, `in_edges`, or `ignore_edges`.
+        in `out_edges` or `in_edges`.
 
         Parameters
         ----------
@@ -128,11 +128,11 @@ class Network(qutip.core.data.Data):
 
     def _check_in_out_are_dangling(self):
         for (i, e) in enumerate(self.out_edges):
-          if not e.is_dangling():
-            raise ValueError("output edge {} is not dangling!".format(i))
+            if not e.is_dangling():
+                raise ValueError("output edge {} is not dangling!".format(i))
         for (i, e) in enumerate(self.in_edges):
-          if not e.is_dangling():
-            raise ValueError("input edge {} is not dangling!".format(i))
+            if not e.is_dangling():
+                raise ValueError("input edge {} is not dangling!".format(i))
 
     def _check_only_in_out_are_dangling(self):
         known_edges = set(self.in_edges + self.out_edges)
@@ -204,7 +204,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def transopose(self):
+    def transpose(self):
         """Returns the transpose of the network.
 
         The output consists on the transpose of ``in_edges`` and
@@ -340,7 +340,7 @@ class Network(qutip.core.data.Data):
         >>> net.dims
         [[2], [2]]
 
-        One dimensional arrays are understoof as kets and cero dimensional ones
+        One dimensional arrays are understood as kets and zero dimensional ones
         as scalars.
 
         >>> array = np.array((2)) # ket
@@ -495,7 +495,7 @@ class Network(qutip.core.data.Data):
 
         # connect edges to create network for the result
         for (e_in, e_out) in zip(in_edges, out_edges):
-          _ = e_in ^ e_out
+            _ = e_in ^ e_out
 
         in_edges = [new_edges_other[e] for e in other.in_edges]
         out_edges = [new_edges_self[e] for e in self.out_edges]

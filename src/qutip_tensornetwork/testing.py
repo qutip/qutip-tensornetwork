@@ -15,10 +15,10 @@ def assert_network_close(actual, desired, atol=0, rtol=1e-7):
         Desired ``Network``.
 
     atol: float, optional
-        Relative tolerance.
+        Absolute tolerance.
 
     rtol: float, optional
-        Absolute tolerance.
+        Relative tolerance.
 
     Raises
     ------

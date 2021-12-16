@@ -18,12 +18,12 @@ def matmul_network(left, right, scale=1, out=None):
     # This part of the operation wont be added until we think about what to do
     # with addition.
     if out is not None:
-        raise NotImplementedError()
+        raise NotImplementedError("The addition of Network data layer instances is not yet implemented")
 
     if scale != 1:
         out._nodes = out._nodes | tn.Node(scale)
 
-    return left@right
+    return left @ right
 
 
 qutip.data.matmul.add_specialisations([(Network, Network,
