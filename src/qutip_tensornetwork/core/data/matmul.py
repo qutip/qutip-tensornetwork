@@ -23,7 +23,7 @@ def matmul_network(left, right, scale=1, out=None):
     if scale != 1:
         out._nodes = out._nodes | tn.Node(scale)
 
-    return left@right
+    return left @ right
 
 
 qutip.data.matmul.add_specialisations([(Network, Network,
