@@ -8,7 +8,8 @@ def tensor_network(left, right):
     """Returns a network obtained from the tensor operation between left and
     right.
 
-    See also:
+    See also
+    --------
     Network.tensor: This is the operation employed to produce the tensor.
     """
     return left.tensor(right)
