@@ -24,8 +24,11 @@ def assert_network_close(actual, desired, atol=0, rtol=1e-7):
     ------
     AssertionError
         If actual and desired do not represent the same map.
-    ValueError
+
+    NotImplementedError
         If more than one node in the network is close to each other.
+        This function will be extended in the future to deal with this case
+        appropriately.
 
     See Also
     --------
@@ -38,29 +41,34 @@ def assert_network_close(actual, desired, atol=0, rtol=1e-7):
     to handle the case where more than two nodes in the network are the same.
     This is a severe limitation that will be addressed in later updates.
 
-    In its currect form this function does not check the dangling edges either.
+    In its current form this function does not check the dangling edges either.
     """
     # We first find a bijective map, if any, between nodes.
-    node_dict = _search_map(actual.nodes, desired.nodes, atol, rtol)
+    try:
+        node_dict = _search_map(actual.nodes, desired.nodes, atol, rtol)
+    except ValueError:
+        raise NotImplementedError("It was not possible to find a bijective map"
+                                  "because of more than one node being in the"
+                                  "same list and close to each other.")
 
     # We now compare Edges to see if they are properly connected.
     for node in actual.nodes:
         for edge in node.edges:
             if not edge.is_dangling():
                 # This is a very basic test. We need to improve it to check
-                # whether the two edges are really the same: same dimentions
+                # whether the two edges are really the same: same dimensions
                 # and connected to same index.
-                assert_no_edge_between(node_dict[edge.node1], node_dict[edge.node2])
+                if not is_connected(node_dict[edge.node1], node_dict[edge.node2]):
+                    raise AssertionError("Node 1 "+ str(node1) + " and Node 2 " + str(node2) +
+                                         " have no edges in common.")
 
-def assert_no_edge_between(node1, node2):
-    """Raise an AssertionError if the given nodes do not have an edge connectin
-    them."""
+def is_connected(node1, node2):
+    """Returns True if node1 and node2 have an edge in common."""
     for edge in node1.edges:
         if edge in node2.edges:
-            return None
+            return True
+    return False
 
-    raise AssertionError("Node 1 "+ str(node1) + " and Node 2 " + str(node2) +
-                         " have no edges in common.")
 
 def _search_map(nodes_actual, nodes_desired, atol, rtol):
     """It attempts to create a map between the nodes of two networks such
@@ -70,8 +78,9 @@ def _search_map(nodes_actual, nodes_desired, atol, rtol):
     ------
     AssertionError
         If actual and desired do not represent the same map.
+
     ValueError
-        If more than one node in the network is close to each other. Hence, no
+        If more than one node in the network are close to each other. Hence, no
         bijection was possible.
     """
 
@@ -95,6 +104,7 @@ def _search_close(node_actual, nodes_desired, atol, rtol):
                              "close to " + str(node_actual))
     if len(found) > 1:
         raise ValueError("Multiple nodes found that were close to"
-                             + str(node_actual))
+                         + str(node_actual)+ ". Hence, no bijection"
+                         " was possible.")
     return found[0]
 
