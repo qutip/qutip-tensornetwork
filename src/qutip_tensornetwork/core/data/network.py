@@ -340,7 +340,7 @@ class Network(qutip.core.data.Data):
         >>> net.dims
         [[2], [2]]
 
-        One dimensional arrays are understoof as kets and cero dimensional ones
+        One dimensional arrays are understood as kets and zero dimensional ones
         as scalars.
 
         >>> array = np.array((2)) # ket
