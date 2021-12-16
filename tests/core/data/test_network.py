@@ -9,105 +9,109 @@ from qutip_tensornetwork.testing import assert_network_close
 from .conftest import random_node, random_complex_network
 import tensornetwork as tn
 
-def test_init_only_in_edge():
-    node = random_node((2,))
-    network = Network([], node[0:], copy=False)
-    assert len(network.nodes) == 1
-    assert network.nodes.pop() is node
-    assert len(network.in_edges) == 1
-    assert network.in_edges[0] is node[0]
-    assert len(network.out_edges) == 0
+class TestInit():
+    def test_init_only_in_edge(self):
+        node = random_node((2,))
+        network = Network([], node[0:], copy=False)
+        node_list = list(network.nodes)
+        assert len(node_list) == 1
+        assert node_list[0] is node
+        assert len(network.in_edges) == 1
+        assert network.in_edges[0] is node[0]
+        assert len(network.out_edges) == 0
 
-def test_init_only_out_edge():
-    node = random_node((2,))
-    network = Network(node[0:], [], copy=False)
-    assert len(network.nodes) == 1
-    assert network.nodes.pop() is node
-    assert len(network.out_edges) == 1
-    assert network.out_edges[0] is node[0]
-    assert len(network.in_edges) == 0
+    def test_init_only_out_edge(self):
+        node = random_node((2,))
+        network = Network(node[0:], [], copy=False)
 
-def test_init_both_in_and_out_edge():
-    node = random_node((2, 2))
-    network = Network(node[0:1], node[1:], copy=False)
-    assert len(network.nodes) == 1
-    assert network.nodes.pop() is node
-    assert len(network.out_edges) == 1
-    assert network.out_edges[0] is node[0]
-    assert len(network.in_edges) == 1
-    assert network.in_edges[0] is node[1]
+        node_list = list(network.nodes)
+        assert len(node_list) == 1
+        assert node_list[0] is node
 
-def test_init_raise_if_edges_not_unique():
-    """in_edges and out_edges must be unique."""
-    node = random_node((2, 2))
-    with pytest.raises(ValueError):
-       network = Network([node[0]], [node[0]])
+        assert len(network.out_edges) == 1
+        assert network.out_edges[0] is node[0]
+        assert len(network.in_edges) == 0
 
-def test_non_dangling_in_or_out_raises():
-    """Input edges for in_edges and out_edges must be dangling."""
-    node = random_node((2,))
-    node2 = random_node((2,))
-    node[0] ^ node2[0]
+    def test_init_both_in_and_out_edge(self):
+        node = random_node((2, 2))
+        network = Network(node[0:1], node[1:], copy=False)
+        node_list = list(network.nodes)
+        assert len(node_list) == 1
+        assert node_list[0] is node
 
-    with pytest.raises(ValueError):
-       network = Network([node[0]], [])
+        assert len(network.out_edges) == 1
+        assert network.out_edges[0] is node[0]
+        assert len(network.in_edges) == 1
+        assert network.in_edges[0] is node[1]
 
-    with pytest.raises(ValueError):
-       network = Network([], [node[0]])
+    def test_init_raise_if_edges_not_unique(self):
+        """in_edges and out_edges must be unique."""
+        node = random_node((2, 2))
+        with pytest.raises(ValueError):
+           network = Network([node[0]], [node[0]])
 
-def test_nodes_dont_include_edges_raises():
-    """Included nodes do not have the passed in_edges or out_edges."""
-    node = random_node((2,2))
-    node2 = random_node((2,2))
-    with pytest.raises(ValueError):
-        network = Network(node[0:1], node[1:], nodes=[node2], copy=False)
+    def test_non_dangling_in_or_out_raises(self):
+        """Input edges for in_edges and out_edges must be dangling."""
+        node = random_node((2,))
+        node2 = random_node((2,))
+        node[0] ^ node2[0]
 
-def test_non_in_out_edges_dangling_raises():
-    """Included nodes can not have dangling edges that are not in_edges or
-    out_edges
-    """
-    node = random_node((2,2,2))
-    with pytest.raises(ValueError):
-        network = Network([node[0]], [node[1]], copy=False)
+        with pytest.raises(ValueError):
+           network = Network([node[0]], [])
 
-def test_scalar_nodes():
-    """It is possible to include scalar nodes as long as they are not the only
-    nodes.
-    """
-    array = np.random.random()
-    node_scalar = tn.Node(array)
-    node = random_node((2,2))
-    network = Network([node[0]], [node[1]], nodes=[node, node_scalar],
-                      copy=False)
-    assert network.nodes <= set([node, node_scalar])
+        with pytest.raises(ValueError):
+           network = Network([], [node[0]])
 
-def test_scalar_network():
-    """Test that networks that contains only a scalar node can be created.
-    """
-    node = random_node(())
-    network = Network([], [], nodes=[node])
-    np.testing.assert_allclose(node.tensor, network.nodes.pop().tensor)
+    def test_nodes_dont_include_edges_raises(self):
+        """Included nodes do not have the passed in_edges or out_edges."""
+        node = random_node((2,2))
+        node2 = random_node((2,2))
+        with pytest.raises(ValueError):
+            network = Network(node[0:1], node[1:], nodes=[node2], copy=False)
 
-def test_scalar_network_contraction():
-    node = random_node(())
-    network = Network([], [], nodes=[node])
-    np.testing.assert_allclose(node.tensor, network.to_array())
+    def test_non_in_out_edges_dangling_raises(self):
+        """Included nodes can not have dangling edges that are not in_edges or
+        out_edges
+        """
+        node = random_node((2,2,2))
+        with pytest.raises(ValueError):
+            network = Network([node[0]], [node[1]], copy=False)
 
-def test_empty_rises():
-    with pytest.raises(ValueError):
-       network = Network([], [], nodes=[])
+    def test_scalar_network(self):
+        """Test that networks that contains only a scalar node can be created.
+        """
+        node = random_node(())
+        network = Network([], [], nodes=[node])
+        np.testing.assert_allclose(node.tensor, network.nodes.pop().tensor)
 
-    with pytest.raises(ValueError):
-       network = Network([], [], nodes=None)
+    def test_scalar_network_contraction(self):
+        node = random_node(())
+        network = Network([], [], nodes=[node])
+        np.testing.assert_allclose(node.tensor, network.to_array())
 
-def test_copy_in_init():
-    node = random_node((2,2))
-    network = Network(node[0:1], node[1:], copy=False)
-    assert node is network.nodes.pop()
-    network = Network(node[0:1], node[1:], copy=True)
-    network_node = network.nodes.pop()
-    assert network_node is not node
-    assert network_node.tensor is node.tensor
+    def test_empty_rises(self):
+        with pytest.raises(ValueError) as e:
+           network = Network([], [], nodes=[])
+
+        error_message = ("Since no edges were provided, it was not possible"
+                         " to infer which nodes belong to the network."
+                         " You may want to include a scalar node to represent"
+                         " a matrix with shape (1,1).")
+        assert str(e.value) == error_message
+
+        with pytest.raises(ValueError) as e:
+           network = Network([], [], nodes=None)
+
+        assert str(e.value) == error_message
+
+    def test_copy_in_init(self):
+        node = random_node((2,2))
+        network = Network(node[0:1], node[1:], copy=False)
+        assert node in network.nodes
+
+        network = Network(node[0:1], node[1:], copy=True)
+        assert node not in network.nodes
+        assert network.nodes.pop().tensor is node.tensor
 
 def test_copy():
     node = random_node((2,2))
@@ -117,11 +121,12 @@ def test_copy():
     assert copied_network.in_edges[0] is not network.in_edges[0]
     assert copied_network.out_edges[0] is not network.out_edges[0]
 
-    assert copied_network.nodes is not network.nodes
-    node = network.nodes.pop()
-    copied_node = copied_network.nodes.pop()
-    assert node is not copied_node
+    assert copied_network.nodes not in network.nodes
+    node = list(network.nodes)[0]
+    copied_node = list(copied_network.nodes)[0]
     assert node.tensor is copied_node.tensor
+
+    assert_network_close(network, copied_network)  # Check topology
 
 def test_fast_constructor():
     node = random_node((2,2))
@@ -187,26 +192,32 @@ def test_transpose():
                                    network.transopose().nodes.pop().tensor)
 
 class TestContract():
-    node1 = random_node((2,))
-    node2 = random_node((2, 2, 2))
-    node1[0] ^ node2[2]
 
-    network = Network([node2[0]], [node2[1]], [node1, node2])
+    def test_default_arguments(self):
+        node1 = random_node((2,))
+        node2 = random_node((2, 2, 2))
+        node1[0] ^ node2[2]
 
-    expect = (node1@node2).tensor
-    def test_default(self):
-        result = self.network.contract()
+        network = Network([node2[0]], [node2[1]], [node1, node2])
+        result = network.contract()
         result = result.nodes.pop().tensor
 
-        np.testing.assert_allclose(result, self.expect)
+        expect = (node1@node2).tensor
+        np.testing.assert_allclose(result, expect)
 
-    def test_edge_order(self):
+    def test_final_edge_order(self):
+        node1 = random_node((2,))
+        node2 = random_node((2, 2, 2))
+        node1[0] ^ node2[2]
+
+        network = Network([node2[0]], [node2[1]], [node1, node2])
         # We transpose the final result by changing the final_edge_order
-        result = self.network.contract(final_edge_order=self.network.in_edges +
-                                       self.network.out_edges)
+        result = network.contract(final_edge_order=network.in_edges +
+                                  network.out_edges)
         result = result.nodes.pop().tensor
 
-        np.testing.assert_allclose(result, self.expect.T)
+        expect = (node1@node2).tensor
+        np.testing.assert_allclose(result, expect.T)
 
 def test_to_array():
     node1 = random_node((2,))
@@ -270,8 +281,8 @@ class TestMatmul:
         right_net = Network(right[:], [])
         left_net = Network([], left[:])
 
-        with pytest.raises(ValueError):
-            result = left_net@right_net
+        with pytest.raises(ValueError) as e:
+            result = left_net @ right_net
 
     def test_numerically_correct(self):
         network1 = random_complex_network(5)
