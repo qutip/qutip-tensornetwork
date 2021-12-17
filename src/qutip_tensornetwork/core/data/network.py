@@ -6,13 +6,12 @@ import tensornetwork as tn
 from tensornetwork.visualization.graphviz import to_graphviz
 from tensornetwork.network_components import AbstractNode, Node, Edge
 from tensornetwork.network_components import CopyNode
-from tensornetwork.network_operations import (get_all_nodes, reachable,
-                                              get_all_edges
-                                             )
+from tensornetwork.network_operations import get_all_nodes, reachable, get_all_edges
 from tensornetwork.network_operations import get_subgraph_dangling
 from tensornetwork.contractors import greedy
 
-__all__ = ['Network']
+__all__ = ["Network"]
+
 
 class Network(qutip.core.data.Data):
     """Represents arbitrary quantum objects as tensor networks.
@@ -76,13 +75,18 @@ class Network(qutip.core.data.Data):
     ``tensornetwork.quantum.QuOperator`` and adapted for our use.
     """
 
-    def __init__(self, out_edges, in_edges, nodes = None, copy = True):
-        if (len(in_edges) == 0 and len(out_edges) == 0
-            and (nodes is None or len(nodes)==0)):
-            raise ValueError("Since no edges were provided, it was not possible"
-                             " to infer which nodes belong to the network."
-                             " You may want to include a scalar node to represent"
-                             " a matrix with shape (1,1).")
+    def __init__(self, out_edges, in_edges, nodes=None, copy=True):
+        if (
+            len(in_edges) == 0
+            and len(out_edges) == 0
+            and (nodes is None or len(nodes) == 0)
+        ):
+            raise ValueError(
+                "Since no edges were provided, it was not possible"
+                " to infer which nodes belong to the network."
+                " You may want to include a scalar node to represent"
+                " a matrix with shape (1,1)."
+            )
 
         self.out_edges = list(out_edges)
         self.in_edges = list(in_edges)
@@ -91,8 +95,9 @@ class Network(qutip.core.data.Data):
         # dynamically searching for them when necessary. This is because
         # searching all nodes in a large graph can be quite expensive while
         # keeping track of them with network operations is straightforward.
-        self.nodes = set(nodes) if nodes else tn.reachable(self.in_edges
-                                                         + self.out_edges)
+        self.nodes = (
+            set(nodes) if nodes else tn.reachable(self.in_edges + self.out_edges)
+        )
 
         self._check_edge_nodes_in_nodes()
         self._check_in_out_are_dangling()
@@ -108,8 +113,7 @@ class Network(qutip.core.data.Data):
 
     @property
     def shape(self):
-        return (np.prod(self.dims[0], dtype=int), np.prod(self.dims[1],
-                                                          dtype=int))
+        return (np.prod(self.dims[0], dtype=int), np.prod(self.dims[1], dtype=int))
 
     @property
     def dims(self):
@@ -130,21 +134,27 @@ class Network(qutip.core.data.Data):
         all_dangling_edges = get_subgraph_dangling(self.nodes)
         if known_edges != all_dangling_edges:
             unexpected_edges = all_dangling_edges.difference(known_edges)
-            raise ValueError("the network includes unexpected dangling edges."
-                            + str(unexpected_edges))
+            raise ValueError(
+                "the network includes unexpected dangling edges."
+                + str(unexpected_edges)
+            )
 
     def _check_edges_unique(self):
         """Check that in_edges and out_edges are unique."""
-        if (len(set(self.in_edges + self.out_edges)) != len(self.in_edges) +
-            len(self.out_edges)):
-            raise ValueError("the edges included as in_edges and out_edges"
-                             " are not unique.")
+        if len(set(self.in_edges + self.out_edges)) != len(self.in_edges) + len(
+            self.out_edges
+        ):
+            raise ValueError(
+                "the edges included as in_edges and out_edges" " are not unique."
+            )
 
     def _check_edge_nodes_in_nodes(self):
         edges = self.in_edges + self.out_edges
         if not set(e.node1 for e in edges) <= self.nodes:
-            raise ValueError("the nodes for in_edges and out_edges are not "
-                             "included in the passed nodes.")
+            raise ValueError(
+                "the nodes for in_edges and out_edges are not "
+                "included in the passed nodes."
+            )
 
     def copy(self):
         """
@@ -176,7 +186,7 @@ class Network(qutip.core.data.Data):
         return out
 
     def _repr_svg_(self):
-        return to_graphviz(self.nodes, engine='dot')._repr_svg_()
+        return to_graphviz(self.nodes, engine="dot")._repr_svg_()
 
     def conj(self):
         """Returns the conjugate of the network.
@@ -235,7 +245,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def contract(self, contractor = greedy, final_edge_order = None):
+    def contract(self, contractor=greedy, final_edge_order=None):
         """Return the contracted version of the tensor network.
 
         Parameters
@@ -265,14 +275,13 @@ class Network(qutip.core.data.Data):
 
         if final_edge_order is not None:
             final_edge_order = [edges_dict[e] for e in final_edge_order]
-            nodes = set(
-                [contractor(nodes, output_edge_order=final_edge_order)])
+            nodes = set([contractor(nodes, output_edge_order=final_edge_order)])
         else:
             nodes = set([contractor(nodes, ignore_edge_order=True)])
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def to_array(self, contractor = greedy):
+    def to_array(self, contractor=greedy):
         """Returns a 2D array that represents the contraction of the tensor
         network.
 
@@ -295,8 +304,9 @@ class Network(qutip.core.data.Data):
         network = self.contract(contractor, final_edge_order=final_edge_order)
         nodes = network.nodes
         if len(nodes) != 1:
-          raise ValueError("Node count '{}' > 1 after contraction!".format(
-              len(nodes)))
+            raise ValueError(
+                "Node count '{}' > 1 after contraction!".format(len(nodes))
+            )
         array = list(nodes)[0].tensor
 
         return array.reshape(self.shape)
@@ -350,29 +360,31 @@ class Network(qutip.core.data.Data):
 
         shape = array.shape
         if len(shape) > 2:
-            raise ValueError("This method only works with 2D, 1D or scalar "
-                             "arrays but the"
-                             "input has " + str(len(array.shape)) + "dimensions")
+            raise ValueError(
+                "This method only works with 2D, 1D or scalar "
+                "arrays but the"
+                "input has " + str(len(array.shape)) + "dimensions"
+            )
 
-        if len(shape)==1:
+        if len(shape) == 1:
             node = tn.Node(array)
             return Network(node[:], [])
 
-        if len(shape)==0:
+        if len(shape) == 0:
             node = tn.Node(array)
             return Network([], [], [node])
 
-        if array.shape[0]==1 and array.shape[1]!=1:
+        if array.shape[0] == 1 and array.shape[1] != 1:
             array = array.reshape(array.shape[1])
             node = tn.Node(array)
             return Network([], node[:])
 
-        elif array.shape[0]!=1 and array.shape[1]==1:
+        elif array.shape[0] != 1 and array.shape[1] == 1:
             array = array.reshape(array.shape[0])
             node = tn.Node(array)
             return Network(node[:], [])
 
-        elif array.shape[0]==1 and array.shape[1]==1:
+        elif array.shape[0] == 1 and array.shape[1] == 1:
             array = array.reshape(())
             node = tn.Node(array)
             return Network([], [], nodes=[node])
@@ -402,7 +414,7 @@ class Network(qutip.core.data.Data):
         network: Network
             Network representing the partial trace of the input.
         """
-        raise NotImplementedError() # This is yet not Implemented
+        raise NotImplementedError()  # This is yet not Implemented
         out_edges_trace = [self.out_edges[i] for i in subsystems_to_trace_out]
         in_edges_trace = [self.in_edges[i] for i in subsystems_to_trace_out]
 
@@ -410,14 +422,12 @@ class Network(qutip.core.data.Data):
 
         nodes_dict, edge_dict = copy(self.nodes, False)
         for (e1, e2) in zip(out_edges_trace, in_edges_trace):
-          edge_dict[e1] = edge_dict[e1] ^ edge_dict[e2]
+            edge_dict[e1] = edge_dict[e1] ^ edge_dict[e2]
 
         # get leftover edges in the original order
         out_edges_trace = set(out_edges_trace)
         in_edges_trace = set(in_edges_trace)
-        out_edges = [
-            edge_dict[e] for e in self.out_edges if e not in out_edges_trace
-        ]
+        out_edges = [edge_dict[e] for e in self.out_edges if e not in out_edges_trace]
         in_edges = [edge_dict[e] for e in self.in_edges if e not in in_edges_trace]
         ref_nodes = [n for _, n in nodes_dict.items()]
         ignore_edges = [edge_dict[e] for e in self.ignore_edges]
@@ -448,7 +458,7 @@ class Network(qutip.core.data.Data):
         >>>right_net = Network(right[:], [])
         >>>left_net = Network([], left[:])
         # This operation is valid even though they have different dims.
-        >>>left_net@right_net         
+        >>>left_net@right_net
 
         When the two Networks have same shape but their dims require a
         transposion of indices in order to match, we raise an error. This is
@@ -480,8 +490,10 @@ class Network(qutip.core.data.Data):
 
         in_edges = [new_edges_other[e] for e in other.in_edges]
         out_edges = [new_edges_self[e] for e in self.out_edges]
-        nodes = set([new_nodes_self[n] for n in self.nodes] +
-                    [new_nodes_other[n] for n in other.nodes])
+        nodes = set(
+            [new_nodes_self[n] for n in self.nodes]
+            + [new_nodes_other[n] for n in other.nodes]
+        )
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
@@ -540,16 +552,24 @@ def _match_edges_by_split(out_edges, in_edges):
     new_in_edges = []
     new_out_edges = []
 
-    if len(_in_edges) == 0 and len(_out_edges)==0:
+    if len(_in_edges) == 0 and len(_out_edges) == 0:
         return _out_edges, _in_edges
 
-    if len(_in_edges) == 0 or len(_out_edges)==0:
-        raise ValueError("edges are not compatible. The dimensions of in_edges: " +
-                         str(in_dims) + " whereas for out_edges: "+str(out_dims))
+    if len(_in_edges) == 0 or len(_out_edges) == 0:
+        raise ValueError(
+            "edges are not compatible. The dimensions of in_edges: "
+            + str(in_dims)
+            + " whereas for out_edges: "
+            + str(out_dims)
+        )
 
     if np.prod(in_dims) != np.product(out_dims):
-        raise ValueError("edges are not compatible. The dimensions of in_edges: " +
-                         str(in_dims) + " whereas for out_edges: "+str(out_dims))
+        raise ValueError(
+            "edges are not compatible. The dimensions of in_edges: "
+            + str(in_dims)
+            + " whereas for out_edges: "
+            + str(out_dims)
+        )
 
     e_in = in_edges.pop()
     e_out = out_edges.pop()
@@ -566,17 +586,20 @@ def _match_edges_by_split(out_edges, in_edges):
             e_in = in_edges.pop()
             e_out = out_edges.pop()
 
-
         elif e_in.dimension > e_out.dimension:
             # IndexError will be caught and by try/except which will then
             # raise the appropriate error
-            if e_in.dimension%e_out.dimension != 0:
-                raise ValueError("edges are not compatible. The dimensions of in_edges: " +
-                                 str(in_dims) + " whereas for out_edges: "+str(out_dims))
+            if e_in.dimension % e_out.dimension != 0:
+                raise ValueError(
+                    "edges are not compatible. The dimensions of in_edges: "
+                    + str(in_dims)
+                    + " whereas for out_edges: "
+                    + str(out_dims)
+                )
             else:
                 # new_shape=(e_out.dimension, e_in.dimension//e_out.dimension)
                 # new_e_in, e_in = tn.split_edge(e_in, shape=new_shape)
-                new_shape = (e_in.dimension//e_out.dimension, e_out.dimension)
+                new_shape = (e_in.dimension // e_out.dimension, e_out.dimension)
                 e_in, new_e_in = tn.split_edge(e_in, shape=new_shape)
 
                 new_out_edges.append(e_out)
@@ -587,21 +610,23 @@ def _match_edges_by_split(out_edges, in_edges):
         elif e_in.dimension < e_out.dimension:
             # IndexError will be caught and by try/except which will then
             # raise the appropriate error
-            if e_out.dimension%e_in.dimension != 0:
-                raise ValueError("edges are not compatible. The dimensions of in_edges: " +
-                                 str(in_dims) + " whereas for out_edges: "+str(out_dims))
+            if e_out.dimension % e_in.dimension != 0:
+                raise ValueError(
+                    "edges are not compatible. The dimensions of in_edges: "
+                    + str(in_dims)
+                    + " whereas for out_edges: "
+                    + str(out_dims)
+                )
             else:
                 # new_shape=(e_in.dimension, e_out.dimension//e_in.dimension)
                 # new_e_out, e_out = tn.split_edge(e_out, shape=new_shape)
-                new_shape=(e_out.dimension//e_in.dimension, e_in.dimension)
+                new_shape = (e_out.dimension // e_in.dimension, e_in.dimension)
                 e_out, new_e_out = tn.split_edge(e_out, shape=new_shape)
 
                 new_out_edges.append(new_e_out)
                 new_in_edges.append(e_in)
 
                 e_in = in_edges.pop()
-
-
 
     new_out_edges.reverse()
     new_in_edges.reverse()

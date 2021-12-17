@@ -1,4 +1,6 @@
 import numpy as np
+
+
 def assert_network_close(actual, desired, atol=0, rtol=1e-7):
     """Asserts if the given two ``Networks`` are not close. For two
     ``Networks`` to be close  there needs to be a one-to-one map between their
@@ -47,9 +49,11 @@ def assert_network_close(actual, desired, atol=0, rtol=1e-7):
     try:
         node_dict = _search_map(actual.nodes, desired.nodes, atol, rtol)
     except ValueError:
-        raise NotImplementedError("It was not possible to find a bijective map"
-                                  "because of more than one node being in the"
-                                  "same list and close to each other.")
+        raise NotImplementedError(
+            "It was not possible to find a bijective map"
+            "because of more than one node being in the"
+            "same list and close to each other."
+        )
 
     # We now compare Edges to see if they are properly connected.
     for node in actual.nodes:
@@ -59,8 +63,14 @@ def assert_network_close(actual, desired, atol=0, rtol=1e-7):
                 # whether the two edges are really the same: same dimensions
                 # and connected to same index.
                 if not is_connected(node_dict[edge.node1], node_dict[edge.node2]):
-                    raise AssertionError("Node 1 "+ str(node1) + " and Node 2 " + str(node2) +
-                                         " have no edges in common.")
+                    raise AssertionError(
+                        "Node 1 "
+                        + str(node1)
+                        + " and Node 2 "
+                        + str(node2)
+                        + " have no edges in common."
+                    )
+
 
 def is_connected(node1, node2):
     """Returns True if node1 and node2 have an edge in common."""
@@ -90,6 +100,7 @@ def _search_map(nodes_actual, nodes_desired, atol, rtol):
 
     return node_dict
 
+
 def _search_close(node_actual, nodes_desired, atol, rtol):
     """Search `nodes_desired` to find which nodes are close to the given
     `node_actual`.
@@ -100,11 +111,14 @@ def _search_close(node_actual, nodes_desired, atol, rtol):
             found.append(node)
 
     if len(found) == 0:
-        raise AssertionError("No node was found in desired nodes that was"
-                             "close to " + str(node_actual))
+        raise AssertionError(
+            "No node was found in desired nodes that was" "close to " + str(node_actual)
+        )
     if len(found) > 1:
-        raise ValueError("Multiple nodes found that were close to"
-                         + str(node_actual)+ ". Hence, no bijection"
-                         " was possible.")
+        raise ValueError(
+            "Multiple nodes found that were close to"
+            + str(node_actual)
+            + ". Hence, no bijection"
+            " was possible."
+        )
     return found[0]
-

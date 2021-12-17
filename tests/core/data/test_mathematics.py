@@ -19,10 +19,12 @@ testing._RANDOM = {
     Network: lambda shape: [lambda: conftest.random_one_node_network(shape)],
 }
 
+
 class TestMatmul(testing.TestMatmul):
     specialisations = [
         pytest.param(data.matmul_network, Network, Network, Network),
     ]
+
 
 class TestKron(testing.TestKron):
     specialisations = [
