@@ -19,7 +19,7 @@ def random_node(shape):
 
 def random_one_node_network(shape):
     """Returns a network with a single node of given shape."""
-    array = random_numpy_dense(shape)
+    array = np.random.random(shape)
     return Network.from_2d_array(array)
 
 
