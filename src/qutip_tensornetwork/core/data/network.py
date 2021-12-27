@@ -563,6 +563,7 @@ def _match_edges_by_split(out_edges, in_edges):
             + str(out_dims)
         )
 
+    # This check ensures that the while look wont raise IndexError.
     if np.prod(in_dims) != np.product(out_dims):
         raise ValueError(
             "edges are not compatible. The dimensions of in_edges: "
@@ -587,8 +588,6 @@ def _match_edges_by_split(out_edges, in_edges):
             e_out = out_edges.pop()
 
         elif e_in.dimension > e_out.dimension:
-            # IndexError will be caught and by try/except which will then
-            # raise the appropriate error
             if e_in.dimension % e_out.dimension != 0:
                 raise ValueError(
                     "edges are not compatible. The dimensions of in_edges: "
@@ -597,8 +596,6 @@ def _match_edges_by_split(out_edges, in_edges):
                     + str(out_dims)
                 )
             else:
-                # new_shape=(e_out.dimension, e_in.dimension//e_out.dimension)
-                # new_e_in, e_in = tn.split_edge(e_in, shape=new_shape)
                 new_shape = (e_in.dimension // e_out.dimension, e_out.dimension)
                 e_in, new_e_in = tn.split_edge(e_in, shape=new_shape)
 
@@ -608,8 +605,6 @@ def _match_edges_by_split(out_edges, in_edges):
                 e_out = out_edges.pop()
 
         elif e_in.dimension < e_out.dimension:
-            # IndexError will be caught and by try/except which will then
-            # raise the appropriate error
             if e_out.dimension % e_in.dimension != 0:
                 raise ValueError(
                     "edges are not compatible. The dimensions of in_edges: "
@@ -618,8 +613,6 @@ def _match_edges_by_split(out_edges, in_edges):
                     + str(out_dims)
                 )
             else:
-                # new_shape=(e_in.dimension, e_out.dimension//e_in.dimension)
-                # new_e_out, e_out = tn.split_edge(e_out, shape=new_shape)
                 new_shape = (e_out.dimension // e_in.dimension, e_in.dimension)
                 e_out, new_e_out = tn.split_edge(e_out, shape=new_shape)
 
