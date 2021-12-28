@@ -14,13 +14,13 @@
 #
 # Note:
 #
-# This file has been derived from quantum.py in the google/TensorNetwork GitHub repository,
-# https://github.com/google/TensorNetwork/blob/9b48cdd98777e4d7f26cccf29a562afe61e51da4/
-# tensornetwork/quantum/quantum.py.
+# This file has been derived from quantum.py in the google/TensorNetwork GitHub
+# repository,
+# https://github.com/google/TensorNetwork/blob/9b48cdd98777e4d7f26cccf29a562afe61e51da4/tensornetwork/quantum/quantum.py.
 #
-# The license above is the one from the original file. The file has been extensively modified. In
-# addition to the license above, the modifications are also provided under the license in
-# LICENSE.txt.
+# The license above is the one from the original file. The file has been
+# extensively modified. In addition to the license above, the modifications are
+# also provided under the license in LICENSE.txt.
 import numbers
 import qutip
 import numpy as np
