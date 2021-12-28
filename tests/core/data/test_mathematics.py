@@ -25,16 +25,19 @@ class TestMatmul(testing.TestMatmul):
         pytest.param(data.matmul_network, Network, Network, Network),
     ]
 
+
 class TestKron(testing.TestKron):
     specialisations = [
         pytest.param(data.tensor_network, Network, Network, Network),
     ]
+
 
 class TestMul(testing.TestMul):
     specialisations = [
         pytest.param(data.mul_network, Network, Network),
         pytest.param(data.imul_network, Network, Network),
     ]
+
 
 class TestNeg(testing.TestNeg):
     specialisations = [
