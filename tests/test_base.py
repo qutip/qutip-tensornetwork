@@ -3,4 +3,5 @@
 
 def test_import():
     import qutip_tensornetwork
+
     assert qutip_tensornetwork.__version__

@@ -1,5 +1,27 @@
+# Copyright 2019 The TensorNetwork Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Note:
+#
+# This file has been derived from quantum.py in the google/TensorNetwork GitHub
+# repository,
+# https://github.com/google/TensorNetwork/blob/9b48cdd98777e4d7f26cccf29a562afe61e51da4/tensornetwork/quantum/quantum.py.
+#
+# The license above is the one from the original file. The file has been
+# extensively modified. In addition to the license above, the modifications are
+# also provided under the license in LICENSE.txt.
 import numbers
-
 import qutip
 import numpy as np
 import tensornetwork as tn
@@ -592,6 +614,7 @@ def _match_edges_by_split(out_edges, in_edges):
             + str(out_dims)
         )
 
+    # This check ensures that the while look wont raise IndexError.
     if np.prod(in_dims) != np.product(out_dims):
         raise ValueError(
             "edges are not compatible. The dimensions of in_edges: "
@@ -616,8 +639,6 @@ def _match_edges_by_split(out_edges, in_edges):
             e_out = out_edges.pop()
 
         elif e_in.dimension > e_out.dimension:
-            # IndexError will be caught and by try/except which will then
-            # raise the appropriate error
             if e_in.dimension % e_out.dimension != 0:
                 raise ValueError(
                     "edges are not compatible. The dimensions of in_edges: "
@@ -626,8 +647,6 @@ def _match_edges_by_split(out_edges, in_edges):
                     + str(out_dims)
                 )
             else:
-                # new_shape=(e_out.dimension, e_in.dimension//e_out.dimension)
-                # new_e_in, e_in = tn.split_edge(e_in, shape=new_shape)
                 new_shape = (e_in.dimension // e_out.dimension, e_out.dimension)
                 e_in, new_e_in = tn.split_edge(e_in, shape=new_shape)
 
@@ -637,8 +656,6 @@ def _match_edges_by_split(out_edges, in_edges):
                 e_out = out_edges.pop()
 
         elif e_in.dimension < e_out.dimension:
-            # IndexError will be caught and by try/except which will then
-            # raise the appropriate error
             if e_out.dimension % e_in.dimension != 0:
                 raise ValueError(
                     "edges are not compatible. The dimensions of in_edges: "
@@ -647,8 +664,6 @@ def _match_edges_by_split(out_edges, in_edges):
                     + str(out_dims)
                 )
             else:
-                # new_shape=(e_in.dimension, e_out.dimension//e_in.dimension)
-                # new_e_out, e_out = tn.split_edge(e_out, shape=new_shape)
                 new_shape = (e_out.dimension // e_in.dimension, e_in.dimension)
                 e_out, new_e_out = tn.split_edge(e_out, shape=new_shape)
 
