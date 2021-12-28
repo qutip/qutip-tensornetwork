@@ -11,10 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This file has been derived from the quantum/quantum.py file in the
-google/TensorNetwork repository. The above license corresponds to the one found
-in the original file. The original file has been extensively modified and these
-modifications follow the same license as the rest of the project does."""
+#
+# Note:
+#
+# This file has been derived from quantum.py in the google/TensorNetwork GitHub repository,
+# https://github.com/google/TensorNetwork/blob/9b48cdd98777e4d7f26cccf29a562afe61e51da4/
+# tensornetwork/quantum/quantum.py.
+#
+# The license above is the one from the original file. The file has been extensively modified. In
+# addition to the license above, the modifications are also provided under the license in
+# LICENSE.txt.
 import numbers
 import qutip
 import numpy as np
