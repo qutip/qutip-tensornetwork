@@ -4,6 +4,7 @@ import warnings
 
 __all__ = ["transpose_network", "conj_network", "adjoint_network"]
 
+
 def transpose_network(network):
     return network.transpose()
 
