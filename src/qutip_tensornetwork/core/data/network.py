@@ -28,6 +28,7 @@ from tensornetwork.contractors import greedy
 
 __all__ = ["Network"]
 
+
 class Network(qutip.core.data.Data):
     """Represents arbitrary quantum objects as tensor networks.
 
