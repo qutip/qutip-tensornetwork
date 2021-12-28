@@ -537,10 +537,7 @@ class Network(qutip.core.data.Data):
         return self.__mul__(other)
 
     def __imul__(self, other):
-        try:
-            node = Node(other)
-        except TypeError:
-            return NotImplemented
+        node = Node(other)
 
         if len(node.shape) != 0:
             raise ValueError(f"{other} is not a valid scalar for mul.")
