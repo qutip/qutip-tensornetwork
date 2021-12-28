@@ -8,8 +8,8 @@ from qutip_tensornetwork import Network
 
 def random_numpy_dense(shape):
     """Generate a random numpy dense matrix with the given shape."""
-    out = np.random.rand(*shape) + 1j * np.random.rand(*shape)
-    return out
+    out = np.random.random(shape) + 1j * np.random.random(shape)
+    return np.asarray(out)
 
 
 def random_node(shape):
@@ -19,7 +19,7 @@ def random_node(shape):
 
 def random_one_node_network(shape):
     """Returns a network with a single node of given shape."""
-    array = np.random.random(shape)
+    array = random_numpy_dense(shape)
     return Network.from_2d_array(array)
 
 
