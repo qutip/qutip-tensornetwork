@@ -528,6 +528,50 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
+    def match_out_dims(self, target_dims):
+        """Reshape the nodes by splitting edge dimensions to match
+        ``target_dims``. After this function the following will hold:
+            ``network.dims[0] == target_dims``
+
+        Note
+        ----
+        This is an in-place operation that returns itself.
+
+        Parameters
+        ----------
+        target_dims: list of int
+            Desired dimensions for ``out_edges``.
+
+        Returns
+        -------
+        Network
+        """
+        edges = _match_dimensions(self.out_edges, target_dims)
+        self.out_edges = edges
+        return self
+
+    def match_in_dims(self, target_dims):
+        """Reshape the nodes by splitting edge dimensions to match
+        ``target_dims``. After this function the following will hold:
+            ``network.dims[1] == target_dims``
+
+        Note
+        ----
+        This is an in-place operation that returns itself.
+
+        Parameters
+        ----------
+        target_dims: list of int
+            Desired dimensions for ``out_edges``.
+
+        Returns
+        -------
+        Network
+        """
+        edges = _match_dimensions(self.in_edges, target_dims)
+        self.in_edges = edges
+        return self
+
 
 def _match_edges_by_split(out_edges, in_edges):
     """Split the edges in out_edges and in_edges to allow matrix
@@ -631,3 +675,106 @@ def _match_edges_by_split(out_edges, in_edges):
     new_out_edges.reverse()
     new_in_edges.reverse()
     return new_out_edges, new_in_edges
+
+
+def _match_dimensions(edges, target_dims):
+    """This function splits the edges such that the dimensions of edges
+    matches target_dims. Only split of edges are allowed in order to match
+    target_dims.
+
+
+    Note
+    ----
+    The modifications to edges are performed in-place, which is why the
+    function is private as it is meant to be used only within network.
+
+    Examples
+    --------
+    >>>network_dim = [4]
+    >>>target_dims = [2,2]
+    >>>array = np.random.random(network_dim)
+    >>>network = Network.from_2d_array(array)
+    >>>match_dimensions(network.in_edges, target_dims)
+
+    Since only splitting of edges are allowed, the next example ill raise a
+    ValuError.
+    >>>network_dim = [2, 2]
+    >>>target_dims = [4]
+    >>>array = np.random.random(network_dim)
+    >>>network = Network.from_2d_array(array)
+    >>>match_dimensions(network.in_edges, target_dims)
+    ValueError
+    """
+
+    edges = edges[:]
+    target_dims = target_dims[:]
+
+    e_dims = [e.dimension for e in edges]
+
+    new_edges = []
+
+    if len(edges) == 0 and len(target_dims) == 0:
+        return _edges
+
+    if len(edges) == 0 or len(target_dims) == 0:
+        raise ValueError(
+            "edges are not compatible. The dimensions for in_edges is: "
+            + str(e_dims)
+            + " whereas for out_edges is: "
+            + str(target_dims)
+        )
+
+    if np.prod(e_dims) != np.product(target_dims):
+        raise ValueError(
+            "edges are not compatible. The dimensions of in_edges: "
+            + str(e_dims)
+            + " whereas for out_edges: "
+            + str(target_dims)
+        )
+
+    edge = edges.pop()
+    target_dim = target_dims.pop()
+
+    while True:
+        if edge.dimension == target_dim:
+            new_edges.append(edge)
+
+            if len(edges) == 0 and len(target_dims) == 0:
+                break
+
+            edge = edges.pop()
+            target_dim = target_dims.pop()
+
+        elif edge.dimension > target_dim: # Split edge
+            if edge.dimension % target_dim != 0:
+                raise ValueError(
+                    "edges are not compatible. The dimensions of edges is "
+                    + str(edge.dimension)
+                    + " whereas the target dimension is "
+                    + str(target_dims)
+                    + "."
+                )
+            else:
+                new_shape = (edge.dimension // target_dim, target_dim)
+                edge, new_edge = tn.split_edge(edge, shape=new_shape)
+
+                new_edges.append(new_edge)
+
+                target_dim = target_dims.pop()
+
+        elif edge.dimension < target_dim:
+
+            raise ValueError(
+                "edges are not compatible. The dimensions of edges is "
+                + str(edge.dimension)
+                + " whereas the target dimension is "
+                + str(target_dims)
+                + ". The reason for these edges to not be compatible is"
+                + " that only splitting of edges is allowed for this"
+                + " operation but a merge of edges was required."
+            )
+
+    new_edges.reverse()
+
+    return new_edges
+
