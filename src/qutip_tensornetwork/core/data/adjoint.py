@@ -1,6 +1,5 @@
 import qutip
 from qutip_tensornetwork.core.data import Network
-import warnings
 
 __all__ = ["transpose_network", "conj_network", "adjoint_network"]
 
