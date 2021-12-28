@@ -13,6 +13,7 @@ def mul_network(network, value):
     """
     return network * value
 
+
 def imul_network(network, value):
     """
     Perform the in-place operation
@@ -23,6 +24,7 @@ def imul_network(network, value):
     network *= value
     return network
 
+
 def neg_network(network):
     """
     Perform the operation
@@ -30,6 +32,7 @@ def neg_network(network):
     where ``network`` is an instance of ``Network``.
     """
     return network * -1
+
 
 qutip.data.mul.add_specialisations([(Network, Network, mul_network)])
 qutip.data.imul.add_specialisations([(Network, Network, imul_network)])
