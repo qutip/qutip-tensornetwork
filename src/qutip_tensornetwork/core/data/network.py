@@ -761,7 +761,6 @@ def _match_dimensions(edges, target_dims):
     matches target_dims. Only split of edges are allowed in order to match
     target_dims.
 
-
     Note
     ----
     The modifications to edges are performed in-place, which is why the
@@ -790,7 +789,7 @@ def _match_dimensions(edges, target_dims):
 
     edges = edges[:]
     target_dims = target_dims[:]
-    _target_dims = target_dims[:] # This is kept for the error messages.
+    _target_dims = target_dims[:]  # This is kept for the error messages.
 
     e_dims = [e.dimension for e in edges]
 
@@ -828,7 +827,7 @@ def _match_dimensions(edges, target_dims):
             edge = edges.pop()
             target_dim = target_dims.pop()
 
-        elif edge.dimension > target_dim: # Split edge
+        elif edge.dimension > target_dim:  # Split edge
             if edge.dimension % target_dim != 0:
                 raise ValueError(
                     "edges are not compatible. The dimensions of edges is "
@@ -860,4 +859,3 @@ def _match_dimensions(edges, target_dims):
     new_edges.reverse()
 
     return new_edges
-

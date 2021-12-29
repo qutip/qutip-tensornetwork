@@ -373,7 +373,7 @@ class TestMatchDims:
         network = Network(node[:], [], copy=False)
         edges = _match_dimensions(network.out_edges, target_dims)
         assert [e.dimension for e in edges] == target_dims
-        # We do not test for the edges in `node.edges` being properly ordered. 
+        # We do not test for the edges in `node.edges` being properly ordered.
         # This is because (surprisingly) split_edges does not repect the order of
         # edges in a node.
         # For network operations this will not be a problem.
