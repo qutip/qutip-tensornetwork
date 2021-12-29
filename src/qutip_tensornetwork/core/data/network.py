@@ -691,23 +691,27 @@ def _match_dimensions(edges, target_dims):
     Examples
     --------
     >>>network_dim = [4]
-    >>>target_dims = [2,2]
+    >>>target_dims = [2, 2]
     >>>array = np.random.random(network_dim)
-    >>>network = Network.from_2d_array(array)
-    >>>match_dimensions(network.in_edges, target_dims)
+    >>>node = tn.Node(array)
+    >>>network = Network(node[:], [])
+    >>>_match_dimensions(network.in_edges, target_dims)
+    ValueError
 
-    Since only splitting of edges are allowed, the next example ill raise a
-    ValuError.
+    Since only splitting of edges are allowed, the next example will raise a
+    ValueError.
     >>>network_dim = [2, 2]
     >>>target_dims = [4]
     >>>array = np.random.random(network_dim)
-    >>>network = Network.from_2d_array(array)
-    >>>match_dimensions(network.in_edges, target_dims)
+    >>>node = tn.Node(array)
+    >>>network = Network(node[:], [])
+    >>>_match_dimensions(network.in_edges, target_dims)
     ValueError
     """
 
     edges = edges[:]
     target_dims = target_dims[:]
+    _target_dims = target_dims[:] # This is kept for the error messages.
 
     e_dims = [e.dimension for e in edges]
 
@@ -718,18 +722,18 @@ def _match_dimensions(edges, target_dims):
 
     if len(edges) == 0 or len(target_dims) == 0:
         raise ValueError(
-            "edges are not compatible. The dimensions for in_edges is: "
+            "edges are not compatible. The dimensions for edges is "
             + str(e_dims)
-            + " whereas for out_edges is: "
-            + str(target_dims)
+            + ", whereas the target dimension is"
+            + str(_target_dims)
         )
 
-    if np.prod(e_dims) != np.product(target_dims):
+    if np.prod(e_dims) != np.prod(target_dims):
         raise ValueError(
-            "edges are not compatible. The dimensions of in_edges: "
+            "edges are not compatible. The dimensions of edges is "
             + str(e_dims)
-            + " whereas for out_edges: "
-            + str(target_dims)
+            + ", whereas the target dimension is "
+            + str(_target_dims)
         )
 
     edge = edges.pop()
@@ -749,9 +753,9 @@ def _match_dimensions(edges, target_dims):
             if edge.dimension % target_dim != 0:
                 raise ValueError(
                     "edges are not compatible. The dimensions of edges is "
-                    + str(edge.dimension)
-                    + " whereas the target dimension is "
-                    + str(target_dims)
+                    + str(e_dims)
+                    + ", whereas the target dimension is "
+                    + str(_target_dims)
                     + "."
                 )
             else:
@@ -766,9 +770,9 @@ def _match_dimensions(edges, target_dims):
 
             raise ValueError(
                 "edges are not compatible. The dimensions of edges is "
-                + str(edge.dimension)
-                + " whereas the target dimension is "
-                + str(target_dims)
+                + str(e_dims)
+                + ", whereas the target dimension is "
+                + str(_target_dims)
                 + ". The reason for these edges to not be compatible is"
                 + " that only splitting of edges is allowed for this"
                 + " operation but a merge of edges was required."
