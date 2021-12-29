@@ -6,7 +6,7 @@ from qutip.core import data
 from qutip.core.data import dense
 from qutip_tensornetwork.core.data import Network
 from qutip_tensornetwork.testing import assert_network_close
-from .conftest import random_node, random_complex_network
+from .conftest import random_node, random_complex_network, random_one_node_network
 import tensornetwork as tn
 
 
@@ -350,3 +350,66 @@ def test_from_2d_array(shape, expected_dims):
 
     np.testing.assert_allclose(array, network.to_array().reshape(shape))
     assert network.dims == expected_dims
+
+
+class TestMul:
+    @pytest.mark.parametrize("shape", [(2, 2), (2, 1), (1, 2), (2), ()])
+    @pytest.mark.parametrize(
+        "scalar",
+        [5, np.array(5)],
+    )
+    def test_mul_left(self, shape, scalar):
+        network = random_one_node_network(shape)
+
+        network_new = network * scalar
+        assert network_new is not network
+        assert len(network_new.nodes) == 2
+        np.testing.assert_allclose(network_new.to_array(), network.to_array() * 5)
+
+    @pytest.mark.parametrize("shape", [(2, 2), (2, 1), (1, 2), (2), ()])
+    @pytest.mark.parametrize(
+        "scalar",
+        [5, np.array(5)],
+    )
+    def test_mul_right(self, shape, scalar):
+        network = random_one_node_network(shape)
+
+        network_new = scalar * network
+        assert network_new is not network
+        assert len(network_new.nodes) == 2
+        np.testing.assert_allclose(network_new.to_array(), network.to_array() * 5)
+
+    def test_raises_TypeError(self):
+        class Dummy:
+            pass
+
+        dummy_scalar = Dummy()
+        network = random_one_node_network((2, 2))
+
+        with pytest.raises(TypeError):
+            result = dummy_scalar * network
+
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            (2, 2),
+            (2, 1),
+            (1, 2),
+            (2),
+            (),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "scalar",
+        [5, np.array(5)],
+    )
+    def test_imul(self, shape, scalar):
+        network = random_one_node_network(shape)
+        array = network.to_array()
+        network_old = network
+
+        network *= scalar
+
+        assert network is network_old
+        assert len(network.nodes) == 2
+        np.testing.assert_allclose(network.to_array(), array * 5)
