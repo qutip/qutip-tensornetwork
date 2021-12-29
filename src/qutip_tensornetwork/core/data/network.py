@@ -519,6 +519,32 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
+    def __mul__(self, other):
+        out = self.copy()
+
+        try:
+            node = Node(other)
+        except TypeError:
+            return NotImplemented
+
+        if len(node.shape) != 0:
+            raise ValueError(f"{other} is not a valid scalar for mul.")
+
+        out.nodes.add(node)
+        return out
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __imul__(self, other):
+        node = Node(other)
+
+        if len(node.shape) != 0:
+            raise ValueError(f"{other} is not a valid scalar for mul.")
+
+        self.nodes.add(node)
+        return self
+
     def tensor(self, other):
         """Tensor product with another operator.
 
