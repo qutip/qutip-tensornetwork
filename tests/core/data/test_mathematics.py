@@ -49,7 +49,7 @@ class TestTranspose(testing.TestTranspose):
         pytest.param(data.transpose_network, Network, Network),
     ]
 
-      
+
 class TestMul(testing.TestMul):
     specialisations = [
         pytest.param(data.mul_network, Network, Network),
