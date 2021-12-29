@@ -551,7 +551,7 @@ class Network(qutip.core.data.Data):
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
     def match_out_dims(self, target_dims):
-        """Reshape the nodes by splitting edge dimensions to match
+        """Reshape nodes by splitting edges such that `in_edges` matches
         ``target_dims``. After this function the following will hold:
             ``network.dims[0] == target_dims``
 
@@ -567,13 +567,32 @@ class Network(qutip.core.data.Data):
         Returns
         -------
         Network
+
+        Examples
+        --------
+        >>>network_dim = [4]
+        >>>target_dims = [2, 2]
+        >>>array = np.random.random(network_dim)
+        >>>node = tn.Node(array)
+        >>>network = Network(node[:], [])
+        >>>network.match_out_dims(target_dims)
+
+        Raises
+        ------
+        ValueError
+            If the target_dims is not compatible or if merging of dimensions is
+            necessary to make the edges compatible with the target dimension.
+
+        See also
+        --------
+        match_in_dims
         """
         edges = _match_dimensions(self.out_edges, target_dims)
         self.out_edges = edges
         return self
 
     def match_in_dims(self, target_dims):
-        """Reshape the nodes by splitting edge dimensions to match
+        """Reshape nodes by splitting edges such that `in_edges` matches
         ``target_dims``. After this function the following will hold:
             ``network.dims[1] == target_dims``
 
@@ -589,6 +608,25 @@ class Network(qutip.core.data.Data):
         Returns
         -------
         Network
+
+        Examples
+        --------
+        >>>network_dim = [4]
+        >>>target_dims = [2, 2]
+        >>>array = np.random.random(network_dim)
+        >>>node = tn.Node(array)
+        >>>network = Network(node[:], [])
+        >>>network.match_out_dims(target_dims)
+
+        Raises
+        ------
+        ValueError
+            If the target_dims is not compatible or if merging of dimensions is
+            necessary to make the edges compatible with the target dimension.
+
+        See also
+        --------
+        match_out_dims
         """
         edges = _match_dimensions(self.in_edges, target_dims)
         self.in_edges = edges
