@@ -48,3 +48,16 @@ class TestTranspose(testing.TestTranspose):
     specialisations = [
         pytest.param(data.transpose_network, Network, Network),
     ]
+
+      
+class TestMul(testing.TestMul):
+    specialisations = [
+        pytest.param(data.mul_network, Network, Network),
+        pytest.param(data.imul_network, Network, Network),
+    ]
+
+
+class TestNeg(testing.TestNeg):
+    specialisations = [
+        pytest.param(data.neg_network, Network, Network),
+    ]
