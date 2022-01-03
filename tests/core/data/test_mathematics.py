@@ -32,6 +32,24 @@ class TestKron(testing.TestKron):
     ]
 
 
+class TestAdjoint(testing.TestAdjoint):
+    specialisations = [
+        pytest.param(data.adjoint_network, Network, Network),
+    ]
+
+
+class TestConj(testing.TestConj):
+    specialisations = [
+        pytest.param(data.conj_network, Network, Network),
+    ]
+
+
+class TestTranspose(testing.TestTranspose):
+    specialisations = [
+        pytest.param(data.transpose_network, Network, Network),
+    ]
+
+
 class TestMul(testing.TestMul):
     specialisations = [
         pytest.param(data.mul_network, Network, Network),
