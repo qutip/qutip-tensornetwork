@@ -596,12 +596,12 @@ class Network(qutip.core.data.Data):
 
         Examples
         --------
-        >>>network_dim = [4]
-        >>>target_dims = [2, 2]
-        >>>array = np.random.random(network_dim)
-        >>>node = tn.Node(array)
-        >>>network = Network(node[:], [])
-        >>>network.match_out_dims(target_dims)
+        >>> network_dim = [4]
+        >>> target_dims = [2, 2]
+        >>> array = np.random.random(network_dim)
+        >>> node = tn.Node(array)
+        >>> network = Network(node[:], [])
+        >>> network.match_out_dims(target_dims)
 
         Raises
         ------
@@ -637,12 +637,12 @@ class Network(qutip.core.data.Data):
 
         Examples
         --------
-        >>>network_dim = [4]
-        >>>target_dims = [2, 2]
-        >>>array = np.random.random(network_dim)
-        >>>node = tn.Node(array)
-        >>>network = Network(node[:], [])
-        >>>network.match_out_dims(target_dims)
+        >>> network_dim = [4]
+        >>> target_dims = [2, 2]
+        >>> array = np.random.random(network_dim)
+        >>> node = tn.Node(array)
+        >>> network = Network(node[:], [])
+        >>> network.match_out_dims(target_dims)
 
         Raises
         ------
@@ -768,22 +768,23 @@ def _match_dimensions(edges, target_dims):
 
     Examples
     --------
-    >>>network_dim = [4]
-    >>>target_dims = [2, 2]
-    >>>array = np.random.random(network_dim)
-    >>>node = tn.Node(array)
-    >>>network = Network(node[:], [])
-    >>>_match_dimensions(network.in_edges, target_dims)
+    >>> network_dim = [4]
+    >>> target_dims = [2, 2]
+    >>> array = np.random.random(network_dim)
+    >>> node = tn.Node(array)
+    >>> network = Network(node[:], [])
+    >>> _match_dimensions(network.in_edges, target_dims)
     ValueError
 
     Since only splitting of edges are allowed, the next example will raise a
-    ValueError.
-    >>>network_dim = [2, 2]
-    >>>target_dims = [4]
-    >>>array = np.random.random(network_dim)
-    >>>node = tn.Node(array)
-    >>>network = Network(node[:], [])
-    >>>_match_dimensions(network.in_edges, target_dims)
+    ValueError:
+    
+    >>> network_dim = [2, 2]
+    >>> target_dims = [4]
+    >>> array = np.random.random(network_dim)
+    >>> node = tn.Node(array)
+    >>> network = Network(node[:], [])
+    >>> _match_dimensions(network.in_edges, target_dims)
     ValueError
     """
 
@@ -798,19 +799,11 @@ def _match_dimensions(edges, target_dims):
     if len(edges) == 0 and len(target_dims) == 0:
         return _edges
 
-    if len(edges) == 0 or len(target_dims) == 0:
+    if len(edges) == 0 or len(target_dims) == 0 or np.prod(e_dims) != np.prod(target_dims):
         raise ValueError(
             "edges are not compatible. The dimensions for edges is "
             + str(e_dims)
             + ", whereas the target dimension is"
-            + str(_target_dims)
-        )
-
-    if np.prod(e_dims) != np.prod(target_dims):
-        raise ValueError(
-            "edges are not compatible. The dimensions of edges is "
-            + str(e_dims)
-            + ", whereas the target dimension is "
             + str(_target_dims)
         )
 

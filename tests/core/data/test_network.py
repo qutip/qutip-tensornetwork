@@ -364,8 +364,8 @@ def test_from_2d_array(shape, expected_dims):
     ],
 )
 class TestMatchDims:
-    """This class contians all the tests for the functions that change the
-    dimsnension of a network by splitting edges.
+    """This class contains all the tests for the functions that change the
+    dimensions of a network by splitting edges.
     """
 
     def test_match_dimensions(self, dim_edges, target_dims):
@@ -402,10 +402,10 @@ class TestMatchDims:
         ([2, 3, 5], [2, 5, 3]),
     ],
 )
-class TestMatchDimsRaisise:
-    """This class contians the tests for the functions that change the
-    dimsnension of a network by splitting edges. In particular it ensures that
-    thep proper error is raised.
+class TestMatchDimsRaise:
+    """This class contains the tests for the functions that change the
+    dimensions of a network by splitting edges. In particular it ensures that
+    the correct errors are raised.
     """
 
     def test_match_dimensions_raises(self, dim_edges, target_dims):
