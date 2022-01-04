@@ -200,23 +200,25 @@ class TestContract:
 
         network = Network([node2[0]], [node2[1]], [node1, node2])
         result = network.contract()
+        assert result is not network
         result = result.nodes.pop().tensor
 
         expect = (node1 @ node2).tensor
         np.testing.assert_allclose(result, expect)
 
-    def test_final_edge_order(self):
+    def test_final_copy(self):
         node1 = random_node((2,))
         node2 = random_node((2, 2, 2))
         node1[0] ^ node2[2]
 
         network = Network([node2[0]], [node2[1]], [node1, node2])
         # We transpose the final result by changing the final_edge_order
-        result = network.contract(final_edge_order=network.in_edges + network.out_edges)
+        result = network.contract(copy=False)
+        assert result is network
         result = result.nodes.pop().tensor
 
         expect = (node1 @ node2).tensor
-        np.testing.assert_allclose(result, expect.T)
+        np.testing.assert_allclose(result, expect)
 
 
 def test_to_array():

@@ -277,6 +277,9 @@ class Network(qutip.core.data.Data):
             ``tensornetwork.contractor.greedy``, which uses the greedy
             algorithm from `opt_einsum` to determine a contraction order.
 
+        copy: bool
+            Default True. If False, perform the operation in-place.
+
         Returns
         -------
         Network
@@ -299,7 +302,7 @@ class Network(qutip.core.data.Data):
 
     @property
     def nodes(self):
-        return _nodes
+        return self._nodes
 
     def to_array(self, contractor=greedy):
         """Returns a 2D array that represents the contraction of the tensor
@@ -321,7 +324,7 @@ class Network(qutip.core.data.Data):
             The final tensor representing the operator.
         """
         final_edge_order = self.out_edges + self.in_edges
-        network = self.contract(contractor, final_edge_order=final_edge_order)
+        network = self.contract(contractor)
         nodes = network.nodes
         if len(nodes) != 1:
             raise ValueError(

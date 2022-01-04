@@ -149,7 +149,7 @@ class FiniteTT(Network):
         return [node["rbond"] for node in self.nodes_as_list[:-1]]
 
 def _check_shape(nodes):
-    """Check that the nodes have the appropiate shape for the `from_node_list`
+    """Check that the nodes have the appropriate shape for the `from_node_list`
     method."""
     if len(node[0].shape) != 2 or len(node[0].shape) != 3:
         raise ValueError(" the shape of the input nodes is not correct. The"
@@ -181,14 +181,14 @@ def _check_shape(nodes):
 
 def network_to_tt(network, copy=False):
     """This function transforms an arbitrary network into a tensor train. This
-    is done by first contrancting the whole network into a single tensor an
-    then spliting it into a tensor-train by repeatedly appliying an svd
-    tranformation to the nodes. No truncation is done by this function. Hence
+    is done by first contracting the whole network into a single tensor an
+    then splitting it into a tensor-train by repeatedly applying an svd
+    transformation to the nodes. No truncation is done by this function. Hence
     the output tensor-train represents exactly the input network.
 
     For a more detailed explanation of the algorithm see [1]_.
 
-    Paramaters
+    Parameters
     ----------
     network : Network
 
@@ -203,7 +203,7 @@ def network_to_tt(network, copy=False):
     """
     if (network.dims[0]!= network.dims[1] and network.in_edges and
         network.out_edges):
-        raise NotImplementedError(" At this moment this class can"
+        raise NotImplementedError(" At this moment the FiniteTT class can"
                                   " only represent square matrices, kets"
                                   " and bras.")
     network = network.contract(copy)
