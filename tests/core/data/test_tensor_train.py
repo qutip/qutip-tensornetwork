@@ -251,6 +251,7 @@ def tets_network_to_tt(in_shape, out_shape):
     assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
     assert_almost_equal(network.to_array(), tt.to_array())
 
+
 @pytest.mark.parametrize(
     "shape, expected_dims",
     [
