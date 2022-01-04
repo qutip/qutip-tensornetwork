@@ -295,8 +295,9 @@ class Network(qutip.core.data.Data):
             return out.contract(contractor, copy=False)
 
         nodes_dict, edges_dict = tn.copy(self.nodes)
-        nodes = set([contractor(self.nodes, output_edge_order=self.out_edges +
-                               self.in_edges)])
+        nodes = set(
+            [contractor(self.nodes, output_edge_order=self.out_edges + self.in_edges)]
+        )
         self._nodes = nodes
         return self
 
@@ -391,30 +392,30 @@ class Network(qutip.core.data.Data):
 
         if len(shape) == 1:
             node = tn.Node(array)
-            return Network(node[:], [])
+            return cls(node[:], [])
 
         if len(shape) == 0:
             node = tn.Node(array)
-            return Network([], [], [node])
+            return cls([], [], [node])
 
         if array.shape[0] == 1 and array.shape[1] != 1:
             array = array.reshape(array.shape[1])
             node = tn.Node(array)
-            return Network([], node[:])
+            return cls([], node[:])
 
         elif array.shape[0] != 1 and array.shape[1] == 1:
             array = array.reshape(array.shape[0])
             node = tn.Node(array)
-            return Network(node[:], [])
+            return cls(node[:], [])
 
         elif array.shape[0] == 1 and array.shape[1] == 1:
             array = array.reshape(())
             node = tn.Node(array)
-            return Network([], [], nodes=[node])
+            return cls([], [], nodes=[node])
 
         else:
             node = tn.Node(array)
-            return Network(node[0:1], node[1:])
+            return cls(node[0:1], node[1:])
 
     def partial_trace(self, subsystems_to_trace_out):
         """NOT IMPLEMENTED YET.

@@ -250,3 +250,28 @@ def tets_network_to_tt(in_shape, out_shape):
     assert_nodes_name(tt)
     assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
     assert_almost_equal(network.to_array(), tt.to_array())
+
+@pytest.mark.parametrize(
+    "shape, expected_dims",
+    [
+        ((2, 2), [[2], [2]]),
+        ((2, 1), [[2], []]),
+        ((1, 2), [[], [2]]),
+        ((2), [[2], []]),
+        ((), [[], []]),
+    ],
+)
+def test_from_2d_array(shape, expected_dims):
+    array = np.random.random(shape)
+    tt = FiniteTT.from_2d_array(array)
+
+    assert isinstance(tt, FiniteTT)
+    assert len(tt.node_list) == (1 if shape else 0)
+    assert len(tt.bond_edges) == 0
+    assert tt.dims == expected_dims
+    assert_in_edges_name(tt)
+    assert_out_edges_name(tt)
+    assert_bond_edges_name(tt)
+    assert_nodes_name(tt)
+    assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
+    np.testing.assert_allclose(array, tt.to_array().reshape(shape))
