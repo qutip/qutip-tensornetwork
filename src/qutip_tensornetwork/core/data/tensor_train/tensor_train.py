@@ -156,6 +156,117 @@ class FiniteTT(Network):
         return [node["rbond"] for node in self.node_list[:-1]]
 
 
+    def truncate(self, bond_dimension=None, max_truncation_err = None,
+                 relative=False):
+        """ Truncate in-place the bond dimension of the tensor train according
+        to ``bond_dimension``. This is done from left to right and once
+        finished the network is right normalized.
+
+        Notes
+        -----
+        The truncation method consists on performing a svd decomposition from
+        left to right and truncating each nodes svd by the given parameters.
+
+        Parameters
+        ----------
+        bond_dimension: List of int or int
+            List of integers that define, from left to right, the target bond
+            dimension. If a single integer is provided is understood as the
+            same bond dimension for all bonds. None is understood as
+            "infinite" bond dimension and hence no truncation is done.
+
+        max_truncation_err: List of float or float
+            Maximum truncation error for each individual node. If a single
+            value is provided instead of a list, it is the assumed that the
+            same value applies for every node.
+
+        Returns
+        -------
+        error: float
+            Sum of truncated singular values.
+
+        See also
+        --------
+        tensornetwork.split_node:
+            Function employed to split individual nodes. ``bond_dimension``
+            and ``max_truncation_err`` directly translate into
+            ``max_singular_values`` and ``max_truncation_err``.
+        """
+        if not isinstance(bond_dimension, list):
+            bond_dimension = [bond_dimension] * len(self.bond_edges)
+
+        if not isinstance(max_truncation_err, list):
+            max_truncation_err = [max_truncation_err] * len(self.bond_edges)
+
+        if len(self.node_list) == 1:
+            return []
+
+        total_error = []
+        for bond_edge, dim, err in zip(self.bond_edges, bond_dimension,
+                                       max_truncation_err):
+
+            node = bond_edge.node1
+            next_node = bond_edge.node2
+
+            # We begin by performing the following (svd) transformation:
+            #   |   |             |           |
+            # - * - * -   --->  - * - * - * - * -
+            #   |   |             |           |
+            # where the edge between the nodes (left fig) is the bond_edge.
+            # Note that the svd truncates the dimension of the new nodes.
+            left_edges = [edge for edge in node if edge is not bond_edge]
+            right_edges = [bond_edge]
+            lnode, s, rnode, error = tn.split_node_full_svd(node, left_edges, right_edges,
+                                               max_singular_values=dim,
+                                               max_truncation_err=err)
+            total_error += error.tolist()
+            lnode.name = node.name
+            lnode.reorder_edges(left_edges + [s[0]])
+            lnode.add_axis_names(node.axis_names)
+
+            # The next step is to contract the last two nodes to obtain the
+            # network again in the tt format:
+            #   |           |            |   |
+            # - * - * - * - * -  ----> - * - * -
+            #   |           |            |   |
+            # Note that bond edge connects now rnode and next_node
+            axis_names = next_node.axis_names
+            edge_order = [next_node["out"]] if "out" in axis_names else []
+            edge_order += [next_node["in"]] if "in" in axis_names else []
+            edge_order += [s[0]] # This is the new bond edge
+            edge_order += [next_node["rbond"]] if "rbond" in axis_names else []
+
+            new_next_node = tn.contract(s[1])
+            new_next_node = tn.contract(bond_edge)
+            new_next_node.reorder_edges(edge_order)
+            new_next_node.add_axis_names(axis_names)
+            new_next_node.name = next_node.name
+
+        # We append the last node after the for loop as it does not need to be
+        # truncated. 
+        new_nodes = [edge.node1 for edge in self.bond_edges]
+        new_nodes += [self.bond_edges[-1].node2]
+
+        self._nodes = set(new_nodes)
+
+        return total_error
+
+
+    @classmethod
+    def _fast_constructor(cls, out_edges, in_edges, nodes):
+        """Fast constructor for a TensorTrain. This is unsafe and should only be
+        used if it is known with absolute certainty that the input edges and
+        nodes form a correct TensorTrain. For example, after a matmul operation
+        with two valid networks.
+        """
+        out = cls.__new__(cls)
+        out.in_edges = in_edges
+        out.out_edges = out_edges
+        out._nodes = nodes
+
+        return out
+
+
 def _check_shape(nodes):
     """Check that the nodes have the appropriate shape for the `from_node_list`
     method."""
@@ -167,14 +278,14 @@ def _check_shape(nodes):
         )
 
     previous_lbond_dim = nodes[0].shape[-1]
-    for i, node in enumerate(nodes[1:-1], start=1):
+    for i, node in enumerate(nodes[1:-1], start=2):
         if len(node.shape) != 1 + len(nodes[0].shape):
             raise ValueError(
-                " the shape of the {i}-th node is not correct. It"
+                f" the shape of the {i}-th node is not correct. It"
                 f" has rank {len(node.shape)} but was expecting"
                 f" {len(nodes[0].shape) + 1}."
             )
-        # Checking bond_dimension is not sctrictly necessary but we do it to
+        # Checking bond_dimension is not strictly necessary but we do it to
         # raise a clearer error message.
         if node.shape[-2] != previous_lbond_dim:
             raise ValueError(
@@ -198,6 +309,8 @@ def _check_shape(nodes):
             f" different ({previous_lbond_dim} and"
             f" {nodes[-1].shape[-1]} respectively)."
         )
+
+
 
 
 def network_to_tt(network, copy=True):
@@ -266,7 +379,7 @@ def network_to_tt(network, copy=True):
 
         lbond = rbond
 
-    # For a single node we do not go through the for loop so we accomodate the
+    # For a single node we do not go through the for loop so we accommodate the
     # variables here
     if n_nodes == 1:
         right_edges = [network.out_edges[0]] if network.out_edges else []
