@@ -354,3 +354,35 @@ class TestTruncate():
         expected_bond_dim = [min(d, truncation) for d, truncation in zip(expected_bond_dim,
                                                         truncated_bond_dimension)]
         assert mpo.bond_dimension == expected_bond_dim[:n]
+
+@pytest.mark.parametrize(
+    "in_shape, out_shape",
+    [
+        ((2, 2, 2), (2, 2, 2)),
+        ((2, 2), (2, 2)),
+        ((2,), (2,)),
+        ((2, 2, 2), ()),
+        ((2,), ()),
+        ((), (2, 2, 2)),
+        ((), (2,)),
+    ],
+)
+def test_init_default_args(in_shape, out_shape):
+    in_node = random_node(in_shape)
+    out_node = random_node(out_shape)
+    tt = FiniteTT(out_node[:], in_node[:])
+    copy = tt.copy()
+
+    assert isinstance(copy, FiniteTT)
+    assert len(copy.node_list) == max(len(in_shape), len(out_shape))
+    assert len(copy.in_edges) == len(in_shape)
+    assert len(copy.out_edges) == len(out_shape)
+    assert len(copy.bond_edges) == max(len(in_shape) - 1, len(out_shape) - 1)
+    assert set(copy.nodes) == set(copy.node_list)
+    assert_in_edges_name(copy)
+    assert_out_edges_name(copy)
+    assert_bond_edges_name(copy)
+    assert_nodes_name(copy)
+    assert copy.bond_dimension == [e.dimension for e in copy.bond_edges]
+    assert_almost_equal(copy.to_array(), tt.to_array())
+
