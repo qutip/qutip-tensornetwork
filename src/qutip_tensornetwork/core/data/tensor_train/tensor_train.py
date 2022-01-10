@@ -50,8 +50,6 @@ class FiniteTT(Network):
 
     nodes_list: List of Nodes
         Nodes of the tensor-train sorted from left to right.
-
-
     out_edges : list of Edges
         List of ``Edges`` to be used. When the network is considered as a
         matrix, these edges represent the rows.
@@ -74,7 +72,7 @@ class FiniteTT(Network):
     """
 
     def __init__(self, out_edges, in_edges, nodes=None, copy=True):
-        if copy == False:
+        if not copy:
             raise NotImplementedError()
         out_dims = [e.dimension for e in out_edges]
         in_dims = [e.dimension for e in in_edges]
@@ -203,7 +201,7 @@ def _check_shape(nodes):
 def network_to_tt(network, copy=True):
     """This function transforms an arbitrary network into a tensor train. This
     is done by first contracting the whole network into a single tensor an
-    then splitting it into a tensor-train by repeatedly applying an svd
+    then splitting it into a tensor-train by repeatedly applying an SVD
     transformation to the nodes. No truncation is done by this function. Hence
     the output tensor-train represents exactly the input network.
 
@@ -214,7 +212,7 @@ def network_to_tt(network, copy=True):
     network : Network
 
     copy: bool
-        If False, the operation is performed in-place.
+        If False, the operation is performed in-place. Default: True.
 
     References
     ----------
