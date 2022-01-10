@@ -107,7 +107,7 @@ class TestInit:
         assert len(tt.bond_edges) == 0
         np.testing.assert_allclose(node.tensor, tt.to_array())
 
-    def test_empty_rises(self):
+    def test_empty_raises(self):
         with pytest.raises(ValueError) as e:
             network = FiniteTT([], [], nodes=[])
 
@@ -233,7 +233,7 @@ class TestFrom_node_list:
         ((), (2,)),
     ],
 )
-def tets_network_to_tt(in_shape, out_shape):
+def test_network_to_tt(in_shape, out_shape):
     in_node = random_node(in_shape)
     out_node = random_node(out_shape)
     network = Network(out_node[:], in_node[:])

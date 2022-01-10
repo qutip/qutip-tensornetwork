@@ -232,12 +232,12 @@ def network_to_tt(network, copy=True):
     if network.in_edges:
         in_edges = [[e] for e in network.in_edges]
     else:
-        in_edges = [[] * n_nodes]
+        in_edges = [[] for _ in range(n_nodes)]
 
     if network.out_edges:
-        out_edges = [[e] for e in network.in_edges]
+        out_edges = [[e] for e in network.out_edges]
     else:
-        out_edges = [[] * n_nodes]
+        out_edges = [[] for _ in range(n_nodes)]
 
     axes_names = ["out"] if network.out_edges else []
     axes_names += ["in"] if network.in_edges else []
@@ -270,7 +270,7 @@ def network_to_tt(network, copy=True):
         right_edges = [network.out_edges[0]] if network.out_edges else []
         right_edges += [network.in_edges[0]] if network.in_edges else []
         node = right_edges[0].node1
-        node.name = f"node_{n_nodes-1}"
+        node.name = f"node_0"
         node.reorder_edges(right_edges)
         node.add_axis_names(axes_names)
         nodes.append(node)
