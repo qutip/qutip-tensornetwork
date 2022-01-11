@@ -166,14 +166,13 @@ class FiniteTT(Network):
 
         For a more detailed explanation of the algorithm see [1]_.
 
-        Note that this method was created to be used in the init method of
-        the FiniteTT class. It performs an in-place modification of the nodes.
+        Note that this method was created to be used in the init method of the
+        FiniteTT class. It performs an in-place modification of the nodes.
 
         References
-        ----------
-        .. [1] Paeckel, S., Köhler, T., Swoboda, A., Manmana, S. R., Schollwöck,
-        U., & Hubig, C. (2019). Time-evolution methods for matrix-product states.
-        Annals of Physics, 411, 167998.
+        ---------- .. [1] Paeckel, S., Köhler, T., Swoboda, A., Manmana, S. R.,
+        Schollwöck, U., & Hubig, C. (2019). Time-evolution methods for
+        matrix-product states.  Annals of Physics, 411, 167998.
         """
         self.contract(copy=False)
 
