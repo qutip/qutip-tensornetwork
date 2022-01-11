@@ -124,7 +124,7 @@ class TestFrom_node_list:
         list_tensors += [np.random.random((d, chi, chi)) for _ in range(n - 2)]
         list_tensors += [np.random.random((d, chi))]
 
-        tt = FiniteTT.from_node_list(list_tensors)
+        tt = FiniteTT.from_nodes(list_tensors)
 
         assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == 0
@@ -147,7 +147,7 @@ class TestFrom_node_list:
         list_tensors += [np.random.random((d, d, chi, chi)) for _ in range(n - 2)]
         list_tensors += [np.random.random((d, d, chi))]
 
-        tt = FiniteTT.from_node_list(list_tensors)
+        tt = FiniteTT.from_nodes(list_tensors)
 
         assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == n
@@ -171,7 +171,7 @@ class TestFrom_node_list:
         list_tensors += [np.random.random((d, d, chi))]
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
-        tt = FiniteTT.from_node_list(list_tensors)
+        tt = FiniteTT.from_nodes(list_tensors)
 
         assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == n
@@ -196,7 +196,7 @@ class TestFrom_node_list:
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
         with pytest.raises(ValueError):
-            FiniteTT.from_node_list(list_tensors)
+            FiniteTT.from_nodes(list_tensors)
 
     def test_incorrect_shape_raises(self, n):
         d = 3
@@ -207,7 +207,7 @@ class TestFrom_node_list:
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
         with pytest.raises(ValueError):
-            FiniteTT.from_node_list(list_tensors)
+            FiniteTT.from_nodes(list_tensors)
 
         if n > 2:
             list_tensors = [np.random.random((d, d, chi))]
@@ -218,7 +218,7 @@ class TestFrom_node_list:
             list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
             with pytest.raises(ValueError):
-                FiniteTT.from_node_list(list_tensors)
+                FiniteTT.from_nodes(list_tensors)
 
 
 @pytest.mark.parametrize(

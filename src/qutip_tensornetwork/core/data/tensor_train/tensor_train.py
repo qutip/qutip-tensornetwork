@@ -104,7 +104,7 @@ class FiniteTT(Network):
         return [e.dimension for e in self.bond_edges]
 
     @classmethod
-    def from_node_list(cls, nodes):
+    def from_nodes(cls, nodes):
         """Create a tensor-train from a list of nodes.
 
         By default we assume that the input is a ket (MPS) if the first node has
@@ -114,7 +114,7 @@ class FiniteTT(Network):
         Parameters
         ----------
         nodes: List of Node
-            The nodes are assumed to have the foolowing ranks (MPS):
+            The nodes are assumed to have the following ranks (MPS):
                 nodes[0].shape = (out_dim, bond_dim)
                 nodes[1:-1].shape = (out_dim, bond_dim, bond_dim)
                 nodes[-1].shape = (out_dim, bond_dim)
