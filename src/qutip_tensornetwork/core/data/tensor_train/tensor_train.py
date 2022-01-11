@@ -2,7 +2,9 @@ from qutip_tensornetwork.core.data.network import Network, _match_edges_by_split
 import tensornetwork as tn
 from itertools import chain
 
-__all__ = ["FiniteTT", ]
+__all__ = [
+    "FiniteTT",
+]
 
 
 class FiniteTT(Network):
@@ -197,8 +199,8 @@ class FiniteTT(Network):
             left_edges += in_edges[i]
             left_edges += lbond
 
-            right_edges = out_edges[i + 1:]
-            right_edges += in_edges[i + 1:]
+            right_edges = out_edges[i + 1 :]
+            right_edges += in_edges[i + 1 :]
             # We flatten the right edges as it is a list of lists
             right_edges = list(chain(*right_edges))
 
@@ -234,6 +236,7 @@ class FiniteTT(Network):
             nodes.append(rnode)
 
         self._nodes = set(nodes)
+
 
 def _check_shape(nodes):
     """Check that the nodes have the appropriate shape for the `from_node_list`
