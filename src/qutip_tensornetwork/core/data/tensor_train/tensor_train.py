@@ -75,8 +75,6 @@ class FiniteTT(Network):
     """
 
     def __init__(self, out_edges, in_edges, nodes=None, copy=True):
-        if not copy:
-            return NotImplementedError()
         out_dims = [e.dimension for e in out_edges]
         in_dims = [e.dimension for e in in_edges]
         if in_dims != out_dims and in_edges and out_edges:
@@ -85,10 +83,9 @@ class FiniteTT(Network):
                 " only represent square matrices, kets"
                 " and bras."
             )
-        if copy:
-            super().__init__(out_edges, in_edges, nodes, copy)
-            self._to_tt_format()
-            print(self.nodes)
+
+        super().__init__(out_edges, in_edges, nodes, copy)
+        self._to_tt_format()
 
     @property
     def train_nodes(self):
