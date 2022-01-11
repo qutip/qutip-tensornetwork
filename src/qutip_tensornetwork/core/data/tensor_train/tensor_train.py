@@ -167,14 +167,7 @@ class FiniteTT(Network):
         For a more detailed explanation of the algorithm see [1]_.
 
         Note that this method was created to be used in the init method of
-        the FiniteTT class.
-
-        Parameters
-        ----------
-        network : Network
-
-        copy: bool
-            If False, the operation is performed in-place. Default: True.
+        the FiniteTT class. It performs an in-place modification of the nodes.
 
         References
         ----------
