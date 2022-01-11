@@ -89,9 +89,9 @@ class FiniteTT(Network):
             print(self.nodes)
 
     @property
-    def node_list(self):
-        """Return the nodes as an ordered list. The order goes from left to
-        right in the tensor-train."""
+    def train_nodes(self):
+        """Return the nodes of the train as an ordered list. The order goes
+        from left to right in the tensor-train."""
         if self.in_edges:
             return [edge.node1 for edge in self.in_edges]
         else:
@@ -154,7 +154,7 @@ class FiniteTT(Network):
     @property
     def bond_edges(self):
         """Returns the bond edges as a list sorted from left to right."""
-        return [node["rbond"] for node in self.node_list[:-1]]
+        return [node["rbond"] for node in self.train_nodes[:-1]]
 
     def _to_tt_format(self):
         """This function is used to transform an arbitrary network into a

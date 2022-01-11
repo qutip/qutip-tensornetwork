@@ -12,24 +12,24 @@ import tensornetwork as tn
 
 def assert_nodes_name(tt):
     """Assert if nodes are not named correctly."""
-    for i, node in enumerate(tt.node_list):
+    for i, node in enumerate(tt.train_nodes):
         assert node.name == f"node_{i}"
 
 
 def assert_in_edges_name(tt):
     for i, edge in enumerate(tt.in_edges):
-        assert tt.node_list[i]["in"] is edge
+        assert tt.train_nodes[i]["in"] is edge
 
 
 def assert_out_edges_name(tt):
     for i, edge in enumerate(tt.out_edges):
-        assert tt.node_list[i]["out"] is edge
+        assert tt.train_nodes[i]["out"] is edge
 
 
 def assert_bond_edges_name(tt):
     for i, edge in enumerate(tt.bond_edges):
-        assert tt.node_list[i]["rbond"] is edge
-        assert tt.node_list[i + 1]["lbond"] is edge
+        assert tt.train_nodes[i]["rbond"] is edge
+        assert tt.train_nodes[i + 1]["lbond"] is edge
 
 
 class TestInit:
@@ -51,11 +51,11 @@ class TestInit:
         tt = FiniteTT(out_node[:], in_node[:])
         network = Network(out_node[:], in_node[:])
 
-        assert len(tt.node_list) == max(len(in_shape), len(out_shape))
+        assert len(tt.train_nodes) == max(len(in_shape), len(out_shape))
         assert len(tt.in_edges) == len(in_shape)
         assert len(tt.out_edges) == len(out_shape)
         assert len(tt.bond_edges) == max(len(in_shape) - 1, len(out_shape) - 1)
-        assert set(tt.nodes) == set(tt.node_list)
+        assert set(tt.nodes) == set(tt.train_nodes)
         assert_in_edges_name(tt)
         assert_out_edges_name(tt)
         assert_bond_edges_name(tt)
@@ -101,7 +101,7 @@ class TestInit:
         node = random_node(())
         tt = FiniteTT([], [], nodes=[node])
         assert len(tt.nodes) == 1
-        assert len(tt.node_list) == 0
+        assert len(tt.train_nodes) == 0
         assert len(tt.in_edges) == 0
         assert len(tt.out_edges) == 0
         assert len(tt.bond_edges) == 0
@@ -126,18 +126,18 @@ class TestFrom_node_list:
 
         tt = FiniteTT.from_node_list(list_tensors)
 
-        assert len(tt.node_list) == n
+        assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == 0
         assert len(tt.out_edges) == n
         assert len(tt.bond_edges) == n - 1
-        assert set(tt.nodes) == set(tt.node_list)
+        assert set(tt.nodes) == set(tt.train_nodes)
         assert_in_edges_name(tt)
         assert_out_edges_name(tt)
         assert_bond_edges_name(tt)
         assert_nodes_name(tt)
         assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
 
-        for node_actual, node_desired in zip(tt.node_list, list_tensors):
+        for node_actual, node_desired in zip(tt.train_nodes, list_tensors):
             assert (node_actual.tensor == node_desired).all()
 
     def test_op(self, n):
@@ -149,18 +149,18 @@ class TestFrom_node_list:
 
         tt = FiniteTT.from_node_list(list_tensors)
 
-        assert len(tt.node_list) == n
+        assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == n
         assert len(tt.out_edges) == n
         assert len(tt.bond_edges) == n - 1
-        assert set(tt.nodes) == set(tt.node_list)
+        assert set(tt.nodes) == set(tt.train_nodes)
         assert_in_edges_name(tt)
         assert_out_edges_name(tt)
         assert_bond_edges_name(tt)
         assert_nodes_name(tt)
         assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
 
-        for node_actual, node_desired in zip(tt.node_list, list_tensors):
+        for node_actual, node_desired in zip(tt.train_nodes, list_tensors):
             assert (node_actual.tensor == node_desired).all()
 
     def test_node(self, n):
@@ -173,18 +173,18 @@ class TestFrom_node_list:
 
         tt = FiniteTT.from_node_list(list_tensors)
 
-        assert len(tt.node_list) == n
+        assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == n
         assert len(tt.out_edges) == n
         assert len(tt.bond_edges) == n - 1
-        assert set(tt.nodes) == set(tt.node_list)
+        assert set(tt.nodes) == set(tt.train_nodes)
         assert_in_edges_name(tt)
         assert_out_edges_name(tt)
         assert_bond_edges_name(tt)
         assert_nodes_name(tt)
         assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
 
-        for node_actual, node_desired in zip(tt.node_list, list_tensors):
+        for node_actual, node_desired in zip(tt.train_nodes, list_tensors):
             assert (node_actual.tensor == node_desired.tensor).all()
 
     def test_incorrect_bond_dim_raises(self, n):
@@ -236,7 +236,7 @@ def test_from_2d_array(shape, expected_dims):
     tt = FiniteTT.from_2d_array(array)
 
     assert isinstance(tt, FiniteTT)
-    assert len(tt.node_list) == (1 if shape else 0)
+    assert len(tt.train_nodes) == (1 if shape else 0)
     assert len(tt.bond_edges) == 0
     assert tt.dims == expected_dims
     assert_in_edges_name(tt)
