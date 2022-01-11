@@ -21,7 +21,7 @@ class FiniteTT(Network):
     Notes
     -----
     Nodes in this class have been named from 0 to L, with L the number of
-    nodes,  as they can be sorted (from left to right). The axis of each node
+    nodes, as they can be sorted (from left to right). The axes of each node
     have also been named for easy access. These are named as: {"in", "out",
     "rbond", "lbond"}.
 
