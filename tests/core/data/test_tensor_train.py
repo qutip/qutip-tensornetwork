@@ -4,7 +4,7 @@ import pytest
 
 from qutip.core import data
 from qutip.core.data import dense
-from qutip_tensornetwork.core.data import Network, FiniteTT, network_to_tt
+from qutip_tensornetwork.core.data import Network, FiniteTT
 from qutip_tensornetwork.testing import assert_network_close
 from .conftest import random_node, random_complex_network, random_one_node_network
 import tensornetwork as tn
@@ -219,37 +219,6 @@ class TestFrom_node_list:
 
             with pytest.raises(ValueError):
                 FiniteTT.from_node_list(list_tensors)
-
-
-@pytest.mark.parametrize(
-    "in_shape, out_shape",
-    [
-        ((2, 2, 2), (2, 2, 2)),
-        ((2, 2), (2, 2)),
-        ((2,), (2,)),
-        ((2, 2, 2), ()),
-        ((2,), ()),
-        ((), (2, 2, 2)),
-        ((), (2,)),
-    ],
-)
-def test_network_to_tt(in_shape, out_shape):
-    in_node = random_node(in_shape)
-    out_node = random_node(out_shape)
-    network = Network(out_node[:], in_node[:])
-    tt = network_to_tt(network)
-
-    assert len(tt.node_list) == max(len(in_shape), len(out_shape))
-    assert len(tt.in_edges) == len(in_shape)
-    assert len(tt.out_edges) == len(out_shape)
-    assert len(tt.bond_edges) == max(len(in_shape) - 1, len(out_shape) - 1)
-    assert set(tt.nodes) == set(tt.node_list)
-    assert_in_edges_name(tt)
-    assert_out_edges_name(tt)
-    assert_bond_edges_name(tt)
-    assert_nodes_name(tt)
-    assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
-    assert_almost_equal(network.to_array(), tt.to_array())
 
 
 @pytest.mark.parametrize(

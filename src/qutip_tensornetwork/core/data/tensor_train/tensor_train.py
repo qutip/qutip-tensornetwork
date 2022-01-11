@@ -1,7 +1,8 @@
 from qutip_tensornetwork.core.data.network import Network, _match_edges_by_split
 import tensornetwork as tn
+from itertools import chain
 
-__all__ = ["FiniteTT", "network_to_tt"]
+__all__ = ["FiniteTT", ]
 
 
 class FiniteTT(Network):
@@ -73,7 +74,7 @@ class FiniteTT(Network):
 
     def __init__(self, out_edges, in_edges, nodes=None, copy=True):
         if not copy:
-            raise NotImplementedError()
+            return NotImplementedError()
         out_dims = [e.dimension for e in out_edges]
         in_dims = [e.dimension for e in in_edges]
         if in_dims != out_dims and in_edges and out_edges:
@@ -82,8 +83,10 @@ class FiniteTT(Network):
                 " only represent square matrices, kets"
                 " and bras."
             )
-        super().__init__(out_edges, in_edges, nodes, copy)
-        network_to_tt(self, copy=False)
+        if copy:
+            super().__init__(out_edges, in_edges, nodes, copy)
+            self._to_tt_format()
+            print(self.nodes)
 
     @property
     def node_list(self):
@@ -153,6 +156,92 @@ class FiniteTT(Network):
         """Returns the bond edges as a list sorted from left to right."""
         return [node["rbond"] for node in self.node_list[:-1]]
 
+    def _to_tt_format(self):
+        """This function is used to transform an arbitrary network into a
+        tensor train. This is done by first contracting the whole network into
+        a single tensor an then splitting it into a tensor-train by repeatedly
+        applying an SVD transformation to the nodes. No truncation is done by
+        this function. Hence, the output tensor-train represents exactly the
+        input network.
+
+        For a more detailed explanation of the algorithm see [1]_.
+
+        Note that this method was created to be used in the init method of
+        the FiniteTT class.
+
+        Parameters
+        ----------
+        network : Network
+
+        copy: bool
+            If False, the operation is performed in-place. Default: True.
+
+        References
+        ----------
+        .. [1] Paeckel, S., Köhler, T., Swoboda, A., Manmana, S. R., Schollwöck,
+        U., & Hubig, C. (2019). Time-evolution methods for matrix-product states.
+        Annals of Physics, 411, 167998.
+        """
+        self.contract(copy=False)
+
+        n_nodes = max(len(self.in_edges), len(self.out_edges))
+        if self.in_edges:
+            in_edges = [[e] for e in self.in_edges]
+        else:
+            in_edges = [[] for _ in range(n_nodes)]
+
+        if self.out_edges:
+            out_edges = [[e] for e in self.out_edges]
+        else:
+            out_edges = [[] for _ in range(n_nodes)]
+
+        axes_names = ["out"] if self.out_edges else []
+        axes_names += ["in"] if self.in_edges else []
+
+        nodes = []
+        lbond = []
+        for i in range(n_nodes - 1):
+            left_edges = out_edges[i]
+            left_edges += in_edges[i]
+            left_edges += lbond
+
+            right_edges = out_edges[i + 1:]
+            right_edges += in_edges[i + 1:]
+            # We flatten the right edges as it is a list of lists
+            right_edges = list(chain(*right_edges))
+
+            node = left_edges[0].node1
+
+            lnode, rnode, _ = tn.split_node(node, left_edges, right_edges)
+
+            rbond = [rnode[0]]
+            lnode.name = f"node_{i}"
+            lnode.reorder_edges(left_edges + rbond)
+            lnode.add_axis_names(axes_names + ["lbond"] * len(lbond) + ["rbond"])
+            nodes.append(lnode)
+
+            lbond = rbond
+
+        # For a single node we do not go through the for loop so we accommodate the
+        # variables here
+        if n_nodes == 1:
+            right_edges = out_edges[0]
+            right_edges += in_edges[0]
+            node = right_edges[0].node1
+            node.name = f"node_0"
+            node.reorder_edges(right_edges)
+            node.add_axis_names(axes_names)
+            nodes.append(node)
+        # For when the network is actually a scalar
+        elif n_nodes == 0:
+            nodes = self.nodes
+        else:
+            rnode.name = f"node_{n_nodes-1}"
+            rnode.reorder_edges(right_edges + lbond)
+            rnode.add_axis_names(axes_names + ["lbond"])
+            nodes.append(rnode)
+
+        self._nodes = set(nodes)
 
 def _check_shape(nodes):
     """Check that the nodes have the appropriate shape for the `from_node_list`
@@ -192,96 +281,7 @@ def _check_shape(nodes):
     if nodes[-1].shape[-1] != previous_lbond_dim:
         raise ValueError(
             f" the bond shape between the last and the previoust"
-            " to last node is "
+            " to last node is"
             f" different ({previous_lbond_dim} and"
             f" {nodes[-1].shape[-1]} respectively)."
         )
-
-
-def network_to_tt(network, copy=True):
-    """This function transforms an arbitrary network into a tensor train. This
-    is done by first contracting the whole network into a single tensor an
-    then splitting it into a tensor-train by repeatedly applying an SVD
-    transformation to the nodes. No truncation is done by this function. Hence
-    the output tensor-train represents exactly the input network.
-
-    For a more detailed explanation of the algorithm see [1]_.
-
-    Parameters
-    ----------
-    network : Network
-
-    copy: bool
-        If False, the operation is performed in-place. Default: True.
-
-    References
-    ----------
-    .. [1] Paeckel, S., Köhler, T., Swoboda, A., Manmana, S. R., Schollwöck,
-    U., & Hubig, C. (2019). Time-evolution methods for matrix-product states.
-    Annals of Physics, 411, 167998.
-    """
-    if network.dims[0] != network.dims[1] and network.in_edges and network.out_edges:
-        raise NotImplementedError(
-            " At this moment the FiniteTT class can"
-            " only represent square matrices, kets"
-            " and bras."
-        )
-    network = network.contract(copy=copy)
-
-    n_nodes = max(len(network.in_edges), len(network.out_edges))
-    if network.in_edges:
-        in_edges = [[e] for e in network.in_edges]
-    else:
-        in_edges = [[] for _ in range(n_nodes)]
-
-    if network.out_edges:
-        out_edges = [[e] for e in network.out_edges]
-    else:
-        out_edges = [[] for _ in range(n_nodes)]
-
-    axes_names = ["out"] if network.out_edges else []
-    axes_names += ["in"] if network.in_edges else []
-
-    nodes = []
-    lbond = []
-    for i in range(n_nodes - 1):
-        left_edges = [network.out_edges[i]] if network.out_edges else []
-        left_edges += [network.in_edges[i]] if network.in_edges else []
-        left_edges += lbond
-
-        right_edges = network.out_edges[i + 1 :] if network.out_edges else []
-        right_edges += network.in_edges[i + 1 :] if network.in_edges else []
-
-        node = left_edges[0].node1
-
-        lnode, rnode, _ = tn.split_node(node, left_edges, right_edges)
-
-        rbond = [rnode[0]]
-        lnode.name = f"node_{i}"
-        lnode.reorder_edges(left_edges + rbond)
-        lnode.add_axis_names(axes_names + ["lbond"] * len(lbond) + ["rbond"])
-        nodes.append(lnode)
-
-        lbond = rbond
-
-    # For a single node we do not go through the for loop so we accomodate the
-    # variables here
-    if n_nodes == 1:
-        right_edges = [network.out_edges[0]] if network.out_edges else []
-        right_edges += [network.in_edges[0]] if network.in_edges else []
-        node = right_edges[0].node1
-        node.name = f"node_0"
-        node.reorder_edges(right_edges)
-        node.add_axis_names(axes_names)
-        nodes.append(node)
-    # For when the network is actually a scalar
-    elif n_nodes == 0:
-        nodes = network.nodes
-    else:
-        rnode.name = f"node_{n_nodes-1}"
-        rnode.reorder_edges(right_edges + lbond)
-        rnode.add_axis_names(axes_names + ["lbond"])
-        nodes.append(rnode)
-
-    network._nodes = set(nodes)
-    return network
