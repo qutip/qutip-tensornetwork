@@ -361,6 +361,7 @@ def test_from_2d_array(shape, expected_dims):
         ([2, 2], [2, 2]),
         ([2, 4, 2], [2, 2, 2, 2]),
         ([2, 15, 7], [2, 3, 5, 7]),
+        ([30], [2, 3, 5]),
     ],
 )
 class TestMatchDims:
@@ -383,15 +384,17 @@ class TestMatchDims:
         node = random_node(dim_edges)
         network = Network(node[:], [], copy=False)
         new_network = network.match_out_dims(target_dims)
-        assert new_network is network
-        assert network.dims[0] == target_dims
+        assert new_network is not network
+        assert new_network.dims[0] == target_dims
+        assert_almost_equal(new_network.to_array(), network.to_array())
 
     def test_match_in_dims(self, dim_edges, target_dims):
         node = random_node(dim_edges)
         network = Network([], node[:], copy=False)
         new_network = network.match_in_dims(target_dims)
-        assert new_network is network
-        assert network.dims[1] == target_dims
+        assert new_network is not network
+        assert new_network.dims[1] == target_dims
+        assert_almost_equal(new_network.to_array(), network.to_array())
 
 
 @pytest.mark.parametrize(
@@ -400,6 +403,8 @@ class TestMatchDims:
         ([2, 2], [4]),
         ([2, 2], [3]),
         ([2, 3, 5], [2, 5, 3]),
+        ([2, 4, 5], [2, 2, 2, 3]),
+        ([5, 4, 2], [3, 2, 2, 2]),
     ],
 )
 class TestMatchDimsRaise:
@@ -411,20 +416,32 @@ class TestMatchDimsRaise:
     def test_match_dimensions_raises(self, dim_edges, target_dims):
         node = random_node(dim_edges)
         network = Network(node[:], [], copy=False)
+        copy = network.copy()
+
         with pytest.raises(ValueError):
             _match_dimensions(network.out_edges, target_dims)
+
+        np.testing.assert_equal(copy.to_array(), network.to_array())
 
     def test_match_out_dims_raises(self, dim_edges, target_dims):
         node = random_node(dim_edges)
         network = Network(node[:], [], copy=False)
+        copy = network.copy()
+
         with pytest.raises(ValueError):
             network.match_out_dims(target_dims)
+
+        np.testing.assert_equal(copy.to_array(), network.to_array())
 
     def test_match_in_dims_raises(self, dim_edges, target_dims):
         node = random_node(dim_edges)
         network = Network(node[:], [], copy=False)
+        copy = network.copy()
+
         with pytest.raises(ValueError):
             network.match_in_dims(target_dims)
+
+        np.testing.assert_equal(copy.to_array(), network.to_array())
 
 
 class TestMul:

@@ -487,7 +487,7 @@ class Network(qutip.core.data.Data):
         because there may be some ambiguity in how to transpose the required
         indices.
         >>>dim_in = (3,2)
-        >>>dim_out= (2,3)
+        >>>dim_out = (2,3)
         >>>array = np.random.random()
         >>>right = tn.Node(np.random.random(dim_in))
         >>>left = tn.Node(np.random.random(dim_out))
@@ -581,10 +581,6 @@ class Network(qutip.core.data.Data):
         ``target_dims``. After this function the following will hold:
             ``network.dims[0] == target_dims``
 
-        Note
-        ----
-        This is an in-place operation that returns itself.
-
         Parameters
         ----------
         target_dims: list of int
@@ -601,7 +597,7 @@ class Network(qutip.core.data.Data):
         >>> array = np.random.random(network_dim)
         >>> node = tn.Node(array)
         >>> network = Network(node[:], [])
-        >>> network.match_out_dims(target_dims)
+        >>> network = network.match_out_dims(target_dims)
 
         Raises
         ------
@@ -613,18 +609,15 @@ class Network(qutip.core.data.Data):
         --------
         match_in_dims
         """
-        edges = _match_dimensions(self.out_edges, target_dims)
-        self.out_edges = edges
-        return self
+        out = self.copy()
+        edges = _match_dimensions(out.out_edges, target_dims)
+        out.out_edges = edges
+        return out
 
     def match_in_dims(self, target_dims):
         """Reshape nodes by splitting edges such that `in_edges` matches
         ``target_dims``. After this function the following will hold:
             ``network.dims[1] == target_dims``
-
-        Note
-        ----
-        This is an in-place operation that returns itself.
 
         Parameters
         ----------
@@ -642,7 +635,7 @@ class Network(qutip.core.data.Data):
         >>> array = np.random.random(network_dim)
         >>> node = tn.Node(array)
         >>> network = Network(node[:], [])
-        >>> network.match_out_dims(target_dims)
+        >>> network = network.match_out_dims(target_dims)
 
         Raises
         ------
@@ -654,9 +647,10 @@ class Network(qutip.core.data.Data):
         --------
         match_out_dims
         """
-        edges = _match_dimensions(self.in_edges, target_dims)
-        self.in_edges = edges
-        return self
+        out = self.copy()
+        edges = _match_dimensions(out.in_edges, target_dims)
+        out.in_edges = edges
+        return out
 
 
 def _match_edges_by_split(out_edges, in_edges):
@@ -774,21 +768,19 @@ def _match_dimensions(edges, target_dims):
     >>> node = tn.Node(array)
     >>> network = Network(node[:], [])
     >>> _match_dimensions(network.in_edges, target_dims)
-    ValueError
 
     Since only splitting of edges are allowed, the next example will raise a
     ValueError:
-    
     >>> network_dim = [2, 2]
     >>> target_dims = [4]
     >>> array = np.random.random(network_dim)
     >>> node = tn.Node(array)
     >>> network = Network(node[:], [])
-    >>> _match_dimensions(network.in_edges, target_dims)
-    ValueError
+    >>> _match_dimensions(network.in_edges, target_dims) # ValueError
     """
 
     edges = edges[:]
+
     target_dims = target_dims[:]
     _target_dims = target_dims[:]  # This is kept for the error messages.
 
