@@ -42,7 +42,7 @@ def random_mpo(n, d, bond_dimension):
             for _ in range(n - 2)
         ]
         list_tensors += [np.random.random((d, d, bond_dimension)) - 1 / 2]
-        mpo = FiniteTT.from_node_list(list_tensors)
+        mpo = FiniteTT.from_nodes(list_tensors)
     elif n == 1:
         node = tn.Node(np.random.random((d, d)))
         mpo = FiniteTT(node[0:1], node[1:])
@@ -133,7 +133,7 @@ class TestInit:
 
 
 @pytest.mark.parametrize("n", [2, 3, 4])
-class Test_from_node_list:
+class Test_node_list:
     def test_ket(self, n):
         d = 3
         chi = 10
@@ -285,11 +285,11 @@ class TestTruncate:
         # The default values will truncate the final tensor train as the first
         # few bond dimensions are lager than they need to be.
 
-        assert len(mpo.node_list) == n
+        assert len(mpo.train_nodes) == n
         assert len(mpo.in_edges) == n
         assert len(mpo.out_edges) == n
         assert len(mpo.bond_edges) == n - 1
-        assert set(mpo.nodes) == set(mpo.node_list)
+        assert set(mpo.nodes) == set(mpo.train_nodes)
         assert_in_edges_name(mpo)
         assert_out_edges_name(mpo)
         assert_bond_edges_name(mpo)
@@ -308,15 +308,16 @@ class TestTruncate:
         mpo = random_mpo(n, 2, 100)
         copy = mpo.copy()
 
-        mpo.truncate(bond_dimension=truncated_bond_dimension)
+        error = mpo.truncate(bond_dimension=truncated_bond_dimension)
         # The default values will truncate the final tensor train as the first
         # few bond dimensions are lager than they need to be.
 
-        assert len(mpo.node_list) == n
+        assert isinstance(error, list)
+        assert len(mpo.train_nodes) == n
         assert len(mpo.in_edges) == n
         assert len(mpo.out_edges) == n
         assert len(mpo.bond_edges) == n - 1
-        assert set(mpo.nodes) == set(mpo.node_list)
+        assert set(mpo.nodes) == set(mpo.train_nodes)
         assert_in_edges_name(mpo)
         assert_out_edges_name(mpo)
         assert_bond_edges_name(mpo)
@@ -353,11 +354,11 @@ def test_copy(in_shape, out_shape):
     copy = tt.copy()
 
     assert isinstance(copy, FiniteTT)
-    assert len(copy.node_list) == max(len(in_shape), len(out_shape))
+    assert len(copy.train_nodes) == max(len(in_shape), len(out_shape))
     assert len(copy.in_edges) == len(in_shape)
     assert len(copy.out_edges) == len(out_shape)
     assert len(copy.bond_edges) == max(len(in_shape) - 1, len(out_shape) - 1)
-    assert set(copy.nodes) == set(copy.node_list)
+    assert set(copy.nodes) == set(copy.train_nodes)
     assert_in_edges_name(copy)
     assert_out_edges_name(copy)
     assert_bond_edges_name(copy)

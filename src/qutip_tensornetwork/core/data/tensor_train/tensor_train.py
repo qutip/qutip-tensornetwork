@@ -51,7 +51,7 @@ class FiniteTT(Network):
         in_edges and out_edges or scalar nodes, in which case they have no
         edges.
 
-    nodes_list: List of Nodes
+    train_nodes: List of Nodes
         Nodes of the tensor-train sorted from left to right.
     out_edges : list of Edges
         List of ``Edges`` to be used. When the network is considered as a
@@ -63,7 +63,7 @@ class FiniteTT(Network):
 
     bond_edges: List of Edges
         The edges between the nodes of the tensor-train. These are sorted from
-        left to right (i.e. ``nodes_list[i]["rbond"] == bond_edges[i]``).
+        left to right (i.e. ``train_nodes[i]["rbond"] == bond_edges[i]``).
 
     dims : list of int
         Dimension of the system as a list of lists. dims[0] represents the
@@ -260,7 +260,7 @@ class FiniteTT(Network):
         Returns
         -------
         error: float
-            Sum of truncated singular values.
+            List of truncated singular values.
 
         See also
         --------
@@ -275,7 +275,7 @@ class FiniteTT(Network):
         if not isinstance(max_truncation_err, list):
             max_truncation_err = [max_truncation_err] * len(self.bond_edges)
 
-        if len(self.node_list) == 1:
+        if len(self.train_nodes) == 1:
             return []
 
         total_error = []
