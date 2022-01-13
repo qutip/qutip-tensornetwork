@@ -5,6 +5,7 @@ import pytest
 from qutip.core import data
 from qutip.core.data import dense
 from qutip_tensornetwork.core.data import Network
+from qutip_tensornetwork.core.data.network import _match_dimensions
 from qutip_tensornetwork.testing import assert_network_close
 from .conftest import random_node, random_complex_network, random_one_node_network
 import tensornetwork as tn
@@ -352,6 +353,97 @@ def test_from_2d_array(shape, expected_dims):
 
     np.testing.assert_allclose(array, network.to_array().reshape(shape))
     assert network.dims == expected_dims
+
+
+@pytest.mark.parametrize(
+    "dim_edges, target_dims",
+    [
+        ([4], [2, 2]),
+        ([8], [2, 2, 2]),
+        ([2, 2], [2, 2]),
+        ([2, 4, 2], [2, 2, 2, 2]),
+        ([2, 15, 7], [2, 3, 5, 7]),
+        ([30], [2, 3, 5]),
+    ],
+)
+class TestMatchDims:
+    """This class contains all the tests for the functions that change the
+    dimensions of a network by splitting edges.
+    """
+
+    def test_match_dimensions(self, dim_edges, target_dims):
+        node = random_node(dim_edges)
+        network = Network(node[:], [], copy=False)
+        edges = _match_dimensions(network.out_edges, target_dims)
+        assert [e.dimension for e in edges] == target_dims
+        # We do not test for the edges in `node.edges` being properly ordered.
+        # This is because (surprisingly) split_edges does not repect the order of
+        # edges in a node.
+        # For network operations this will not be a problem.
+        assert set(node.edges) == set(edges)
+
+    def test_match_out_dims(self, dim_edges, target_dims):
+        node = random_node(dim_edges)
+        network = Network(node[:], [], copy=False)
+        new_network = network.match_out_dims(target_dims)
+        assert new_network is not network
+        assert new_network.dims[0] == target_dims
+        assert_almost_equal(new_network.to_array(), network.to_array())
+
+    def test_match_in_dims(self, dim_edges, target_dims):
+        node = random_node(dim_edges)
+        network = Network([], node[:], copy=False)
+        new_network = network.match_in_dims(target_dims)
+        assert new_network is not network
+        assert new_network.dims[1] == target_dims
+        assert_almost_equal(new_network.to_array(), network.to_array())
+
+
+@pytest.mark.parametrize(
+    "dim_edges, target_dims",
+    [
+        ([2, 2], [4]),
+        ([2, 2], [3]),
+        ([2, 3, 5], [2, 5, 3]),
+        ([2, 4, 5], [2, 2, 2, 3]),
+        ([5, 4, 2], [3, 2, 2, 2]),
+    ],
+)
+class TestMatchDimsRaise:
+    """This class contains the tests for the functions that change the
+    dimensions of a network by splitting edges. In particular it ensures that
+    the correct errors are raised.
+    """
+
+    def test_match_dimensions_raises(self, dim_edges, target_dims):
+        node = random_node(dim_edges)
+        network = Network(node[:], [], copy=False)
+        copy = network.copy()
+
+        with pytest.raises(ValueError):
+            _match_dimensions(network.out_edges, target_dims)
+
+        np.testing.assert_equal(copy.to_array(), network.to_array())
+
+    def test_match_out_dims_raises(self, dim_edges, target_dims):
+        node = random_node(dim_edges)
+        network = Network(node[:], [], copy=False)
+        copy = network.copy()
+
+        with pytest.raises(ValueError):
+            network.match_out_dims(target_dims)
+
+        np.testing.assert_equal(copy.to_array(), network.to_array())
+
+    def test_match_in_dims_raises(self, dim_edges, target_dims):
+        node = random_node(dim_edges)
+        network = Network(node[:], [], copy=False)
+        copy = network.copy()
+
+        with pytest.raises(ValueError):
+            network.match_in_dims(target_dims)
+
+        np.testing.assert_equal(copy.to_array(), network.to_array())
 
 
 class TestMul:
