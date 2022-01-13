@@ -117,7 +117,7 @@ class Network(qutip.core.data.Data):
         # dynamically searching for them when necessary. This is because
         # searching all nodes in a large graph can be quite expensive while
         # keeping track of them with network operations is straightforward.
-        self.nodes = (
+        self._nodes = (
             set(nodes) if nodes else tn.reachable(self.in_edges + self.out_edges)
         )
 
@@ -129,7 +129,7 @@ class Network(qutip.core.data.Data):
 
         if copy:
             node_dict, edge_dict = tn.copy(self.nodes)
-            self.nodes = set(node_dict[n] for n in self.nodes)
+            self._nodes = set(node_dict[n] for n in self.nodes)
             self.in_edges = [edge_dict[e] for e in self.in_edges]
             self.out_edges = [edge_dict[e] for e in self.out_edges]
 
@@ -203,7 +203,7 @@ class Network(qutip.core.data.Data):
         out = cls.__new__(cls)
         out.in_edges = in_edges
         out.out_edges = out_edges
-        out.nodes = nodes
+        out._nodes = nodes
 
         return out
 
@@ -267,7 +267,7 @@ class Network(qutip.core.data.Data):
 
         return Network._fast_constructor(out_edges, in_edges, nodes)
 
-    def contract(self, contractor=greedy, final_edge_order=None):
+    def contract(self, contractor=greedy, copy=True):
         """Return the contracted version of the tensor network.
 
         Parameters
@@ -277,7 +277,8 @@ class Network(qutip.core.data.Data):
             ``tensornetwork.contractor.greedy``, which uses the greedy
             algorithm from `opt_einsum` to determine a contraction order.
 
-        final_edge_order: iterable of tensornetwork.Edges
+        copy: bool
+            Default True. If False, perform the operation in-place.
 
         Returns
         -------
@@ -289,19 +290,20 @@ class Network(qutip.core.data.Data):
             tensornetwork.contractor: This module contains other functions that
             can be used instead of ``greedy``.
         """
+        if copy:
+            out = self.copy()
+            return out.contract(contractor, copy=False)
+
         nodes_dict, edges_dict = tn.copy(self.nodes)
+        nodes = set(
+            [contractor(self.nodes, output_edge_order=self.out_edges + self.in_edges)]
+        )
+        self._nodes = nodes
+        return self
 
-        in_edges = [edges_dict[e] for e in self.in_edges]
-        out_edges = [edges_dict[e] for e in self.out_edges]
-        nodes = set(nodes_dict[n] for n in self.nodes if n in nodes_dict)
-
-        if final_edge_order is not None:
-            final_edge_order = [edges_dict[e] for e in final_edge_order]
-            nodes = set([contractor(nodes, output_edge_order=final_edge_order)])
-        else:
-            nodes = set([contractor(nodes, ignore_edge_order=True)])
-
-        return Network._fast_constructor(out_edges, in_edges, nodes)
+    @property
+    def nodes(self):
+        return self._nodes
 
     def to_array(self, contractor=greedy):
         """Returns a 2D array that represents the contraction of the tensor
@@ -323,7 +325,7 @@ class Network(qutip.core.data.Data):
             The final tensor representing the operator.
         """
         final_edge_order = self.out_edges + self.in_edges
-        network = self.contract(contractor, final_edge_order=final_edge_order)
+        network = self.contract(contractor)
         nodes = network.nodes
         if len(nodes) != 1:
             raise ValueError(
@@ -390,30 +392,30 @@ class Network(qutip.core.data.Data):
 
         if len(shape) == 1:
             node = tn.Node(array)
-            return Network(node[:], [])
+            return cls(node[:], [])
 
         if len(shape) == 0:
             node = tn.Node(array)
-            return Network([], [], [node])
+            return cls([], [], [node])
 
         if array.shape[0] == 1 and array.shape[1] != 1:
             array = array.reshape(array.shape[1])
             node = tn.Node(array)
-            return Network([], node[:])
+            return cls([], node[:])
 
         elif array.shape[0] != 1 and array.shape[1] == 1:
             array = array.reshape(array.shape[0])
             node = tn.Node(array)
-            return Network(node[:], [])
+            return cls(node[:], [])
 
         elif array.shape[0] == 1 and array.shape[1] == 1:
             array = array.reshape(())
             node = tn.Node(array)
-            return Network([], [], nodes=[node])
+            return cls([], [], nodes=[node])
 
         else:
             node = tn.Node(array)
-            return Network(node[0:1], node[1:])
+            return cls(node[0:1], node[1:])
 
     def partial_trace(self, subsystems_to_trace_out):
         """NOT IMPLEMENTED YET.

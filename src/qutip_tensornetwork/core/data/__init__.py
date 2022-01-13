@@ -4,3 +4,4 @@ from .matmul import *
 from .tensor import *
 from .adjoint import *
 from .mul import *
+from .tensor_train import *
