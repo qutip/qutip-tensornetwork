@@ -234,7 +234,7 @@ class FiniteTT(Network):
 
         self._nodes = set(nodes)
 
-    def truncate(self, bond_dimension=None, max_truncation_err=None, relative=False):
+    def truncate(self, bond_dimension=None, max_truncation_err=None):
         """Truncate in-place the bond dimension of the tensor train according
         to ``bond_dimension``. This is done from left to right and once
         finished the network is right normalized.
@@ -318,7 +318,7 @@ class FiniteTT(Network):
             edge_order += [s[0]]  # This is the new bond edge
             edge_order += [next_node["rbond"]] if "rbond" in axis_names else []
 
-            new_next_node = tn.contract(s[1])
+            tn.contract(s[1])
             new_next_node = tn.contract(bond_edge)
             new_next_node.reorder_edges(edge_order)
             new_next_node.add_axis_names(axis_names)
