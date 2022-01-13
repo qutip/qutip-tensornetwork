@@ -791,7 +791,11 @@ def _match_dimensions(edges, target_dims):
     if len(edges) == 0 and len(target_dims) == 0:
         return _edges
 
-    if len(edges) == 0 or len(target_dims) == 0 or np.prod(e_dims) != np.prod(target_dims):
+    if (
+        len(edges) == 0
+        or len(target_dims) == 0
+        or np.prod(e_dims) != np.prod(target_dims)
+    ):
         raise ValueError(
             "edges are not compatible. The dimensions for edges is "
             + str(e_dims)
