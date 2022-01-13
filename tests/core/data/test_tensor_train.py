@@ -336,7 +336,7 @@ class TestTruncate():
         ((), (2,)),
     ],
 )
-def test_init_default_args(in_shape, out_shape):
+def test_copy(in_shape, out_shape):
     in_node = random_node(in_shape)
     out_node = random_node(out_shape)
     tt = FiniteTT(out_node[:], in_node[:])
