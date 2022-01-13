@@ -31,19 +31,23 @@ def assert_bond_edges_name(tt):
         assert tt.train_nodes[i]["rbond"] is edge
         assert tt.train_nodes[i + 1]["lbond"] is edge
 
+
 def random_mpo(n, d, bond_dimension):
     """Create a random mpo with n sites d dimension per site and
     bond_dimesnion."""
-    if n>1:
-        list_tensors = [np.random.random((d, d, bond_dimension))-1/2]
-        list_tensors += [np.random.random((d, d, bond_dimension,
-                                           bond_dimension)) -1/2 for _ in range(n-2)]
-        list_tensors += [np.random.random((d, d, bond_dimension)) -1/2]
+    if n > 1:
+        list_tensors = [np.random.random((d, d, bond_dimension)) - 1 / 2]
+        list_tensors += [
+            np.random.random((d, d, bond_dimension, bond_dimension)) - 1 / 2
+            for _ in range(n - 2)
+        ]
+        list_tensors += [np.random.random((d, d, bond_dimension)) - 1 / 2]
         mpo = FiniteTT.from_node_list(list_tensors)
-    elif n==1:
+    elif n == 1:
         node = tn.Node(np.random.random((d, d)))
         mpo = FiniteTT(node[0:1], node[1:])
     return mpo
+
 
 class TestInit:
     @pytest.mark.parametrize(
@@ -259,11 +263,11 @@ def test_from_2d_array(shape, expected_dims):
     assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
     np.testing.assert_allclose(array, tt.to_array().reshape(shape))
 
-class TestTruncate():
+
+class TestTruncate:
     """These tests do not ensure that the operation is mathematically correct
     but rather that the resulting object is a tensor-train with proper
     nodes/edges."""
-
 
     @pytest.mark.parametrize("n", [5, 2, 1])
     def test_default(self, n):
@@ -284,22 +288,23 @@ class TestTruncate():
         assert len(mpo.node_list) == n
         assert len(mpo.in_edges) == n
         assert len(mpo.out_edges) == n
-        assert len(mpo.bond_edges) == n-1
+        assert len(mpo.bond_edges) == n - 1
         assert set(mpo.nodes) == set(mpo.node_list)
         assert_in_edges_name(mpo)
         assert_out_edges_name(mpo)
         assert_bond_edges_name(mpo)
         assert_nodes_name(mpo)
         expected_bond_dim = [4, 16, 64, 100, 100]
-        assert mpo.bond_dimension == expected_bond_dim[:n-1]
+        assert mpo.bond_dimension == expected_bond_dim[: n - 1]
         assert_almost_equal(copy.to_array(), mpo.to_array())
 
-
-    @pytest.mark.parametrize("truncated_bond_dimension", [10, [1, 2, 3, 4] ], ids=["int", "list"])
+    @pytest.mark.parametrize(
+        "truncated_bond_dimension", [10, [1, 2, 3, 4]], ids=["int", "list"]
+    )
     def test_truncate_bodn_dimension(self, truncated_bond_dimension):
         """We test that the argument bond_dimension truncates the tt train to
         return a tt with the specified bon_dimension."""
-        n=5
+        n = 5
         mpo = random_mpo(n, 2, 100)
         copy = mpo.copy()
 
@@ -310,19 +315,24 @@ class TestTruncate():
         assert len(mpo.node_list) == n
         assert len(mpo.in_edges) == n
         assert len(mpo.out_edges) == n
-        assert len(mpo.bond_edges) == n-1
+        assert len(mpo.bond_edges) == n - 1
         assert set(mpo.nodes) == set(mpo.node_list)
         assert_in_edges_name(mpo)
         assert_out_edges_name(mpo)
         assert_bond_edges_name(mpo)
         assert_nodes_name(mpo)
         expected_bond_dim = [4, 16, 64, 100]
-        if isinstance(truncated_bond_dimension,int):
-            truncated_bond_dimension = [truncated_bond_dimension]*len(expected_bond_dim)
+        if isinstance(truncated_bond_dimension, int):
+            truncated_bond_dimension = [truncated_bond_dimension] * len(
+                expected_bond_dim
+            )
 
-        expected_bond_dim = [min(d, truncation) for d, truncation in zip(expected_bond_dim,
-                                                        truncated_bond_dimension)]
+        expected_bond_dim = [
+            min(d, truncation)
+            for d, truncation in zip(expected_bond_dim, truncated_bond_dimension)
+        ]
         assert mpo.bond_dimension == expected_bond_dim[:n]
+
 
 @pytest.mark.parametrize(
     "in_shape, out_shape",
@@ -354,4 +364,3 @@ def test_copy(in_shape, out_shape):
     assert_nodes_name(copy)
     assert copy.bond_dimension == [e.dimension for e in copy.bond_edges]
     assert_almost_equal(copy.to_array(), tt.to_array())
-

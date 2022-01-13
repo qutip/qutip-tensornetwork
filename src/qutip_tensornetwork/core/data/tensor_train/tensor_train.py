@@ -234,10 +234,8 @@ class FiniteTT(Network):
 
         self._nodes = set(nodes)
 
-
-    def truncate(self, bond_dimension=None, max_truncation_err = None,
-                 relative=False):
-        """ Truncate in-place the bond dimension of the tensor train according
+    def truncate(self, bond_dimension=None, max_truncation_err=None, relative=False):
+        """Truncate in-place the bond dimension of the tensor train according
         to ``bond_dimension``. This is done from left to right and once
         finished the network is right normalized.
 
@@ -281,8 +279,9 @@ class FiniteTT(Network):
             return []
 
         total_error = []
-        for bond_edge, dim, err in zip(self.bond_edges, bond_dimension,
-                                       max_truncation_err):
+        for bond_edge, dim, err in zip(
+            self.bond_edges, bond_dimension, max_truncation_err
+        ):
 
             node = bond_edge.node1
             next_node = bond_edge.node2
@@ -295,9 +294,13 @@ class FiniteTT(Network):
             # Note that the svd truncates the dimension of the new nodes.
             left_edges = [edge for edge in node if edge is not bond_edge]
             right_edges = [bond_edge]
-            lnode, s, rnode, error = tn.split_node_full_svd(node, left_edges, right_edges,
-                                               max_singular_values=dim,
-                                               max_truncation_err=err)
+            lnode, s, rnode, error = tn.split_node_full_svd(
+                node,
+                left_edges,
+                right_edges,
+                max_singular_values=dim,
+                max_truncation_err=err,
+            )
             total_error += error.tolist()
             lnode.name = node.name
             lnode.reorder_edges(left_edges + [s[0]])
@@ -312,7 +315,7 @@ class FiniteTT(Network):
             axis_names = next_node.axis_names
             edge_order = [next_node["out"]] if "out" in axis_names else []
             edge_order += [next_node["in"]] if "in" in axis_names else []
-            edge_order += [s[0]] # This is the new bond edge
+            edge_order += [s[0]]  # This is the new bond edge
             edge_order += [next_node["rbond"]] if "rbond" in axis_names else []
 
             new_next_node = tn.contract(s[1])
@@ -322,14 +325,13 @@ class FiniteTT(Network):
             new_next_node.name = next_node.name
 
         # We append the last node after the for loop as it does not need to be
-        # truncated. 
+        # truncated.
         new_nodes = [edge.node1 for edge in self.bond_edges]
         new_nodes += [self.bond_edges[-1].node2]
 
         self._nodes = set(new_nodes)
 
         return total_error
-
 
     @classmethod
     def _fast_constructor(cls, out_edges, in_edges, nodes):
