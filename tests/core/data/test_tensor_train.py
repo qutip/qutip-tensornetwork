@@ -4,7 +4,7 @@ import pytest
 
 from qutip.core import data
 from qutip.core.data import dense
-from qutip_tensornetwork.core.data import Network, FiniteTT, network_to_tt
+from qutip_tensornetwork.core.data import Network, FiniteTT
 from qutip_tensornetwork.testing import assert_network_close
 from .conftest import random_node, random_complex_network, random_one_node_network
 import tensornetwork as tn
@@ -12,24 +12,24 @@ import tensornetwork as tn
 
 def assert_nodes_name(tt):
     """Assert if nodes are not named correctly."""
-    for i, node in enumerate(tt.node_list):
+    for i, node in enumerate(tt.train_nodes):
         assert node.name == f"node_{i}"
 
 
 def assert_in_edges_name(tt):
     for i, edge in enumerate(tt.in_edges):
-        assert tt.node_list[i]["in"] is edge
+        assert tt.train_nodes[i]["in"] is edge
 
 
 def assert_out_edges_name(tt):
     for i, edge in enumerate(tt.out_edges):
-        assert tt.node_list[i]["out"] is edge
+        assert tt.train_nodes[i]["out"] is edge
 
 
 def assert_bond_edges_name(tt):
     for i, edge in enumerate(tt.bond_edges):
-        assert tt.node_list[i]["rbond"] is edge
-        assert tt.node_list[i + 1]["lbond"] is edge
+        assert tt.train_nodes[i]["rbond"] is edge
+        assert tt.train_nodes[i + 1]["lbond"] is edge
 
 def random_mpo(n, d, bond_dimension):
     """Create a random mpo with n sites d dimension per site and
@@ -64,11 +64,11 @@ class TestInit:
         tt = FiniteTT(out_node[:], in_node[:])
         network = Network(out_node[:], in_node[:])
 
-        assert len(tt.node_list) == max(len(in_shape), len(out_shape))
+        assert len(tt.train_nodes) == max(len(in_shape), len(out_shape))
         assert len(tt.in_edges) == len(in_shape)
         assert len(tt.out_edges) == len(out_shape)
         assert len(tt.bond_edges) == max(len(in_shape) - 1, len(out_shape) - 1)
-        assert set(tt.nodes) == set(tt.node_list)
+        assert set(tt.nodes) == set(tt.train_nodes)
         assert_in_edges_name(tt)
         assert_out_edges_name(tt)
         assert_bond_edges_name(tt)
@@ -114,13 +114,13 @@ class TestInit:
         node = random_node(())
         tt = FiniteTT([], [], nodes=[node])
         assert len(tt.nodes) == 1
-        assert len(tt.node_list) == 0
+        assert len(tt.train_nodes) == 0
         assert len(tt.in_edges) == 0
         assert len(tt.out_edges) == 0
         assert len(tt.bond_edges) == 0
         np.testing.assert_allclose(node.tensor, tt.to_array())
 
-    def test_empty_rises(self):
+    def test_empty_raises(self):
         with pytest.raises(ValueError) as e:
             network = FiniteTT([], [], nodes=[])
 
@@ -137,20 +137,20 @@ class Test_from_node_list:
         list_tensors += [np.random.random((d, chi, chi)) for _ in range(n - 2)]
         list_tensors += [np.random.random((d, chi))]
 
-        tt = FiniteTT.from_node_list(list_tensors)
+        tt = FiniteTT.from_nodes(list_tensors)
 
-        assert len(tt.node_list) == n
+        assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == 0
         assert len(tt.out_edges) == n
         assert len(tt.bond_edges) == n - 1
-        assert set(tt.nodes) == set(tt.node_list)
+        assert set(tt.nodes) == set(tt.train_nodes)
         assert_in_edges_name(tt)
         assert_out_edges_name(tt)
         assert_bond_edges_name(tt)
         assert_nodes_name(tt)
         assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
 
-        for node_actual, node_desired in zip(tt.node_list, list_tensors):
+        for node_actual, node_desired in zip(tt.train_nodes, list_tensors):
             assert (node_actual.tensor == node_desired).all()
 
     def test_op(self, n):
@@ -160,20 +160,20 @@ class Test_from_node_list:
         list_tensors += [np.random.random((d, d, chi, chi)) for _ in range(n - 2)]
         list_tensors += [np.random.random((d, d, chi))]
 
-        tt = FiniteTT.from_node_list(list_tensors)
+        tt = FiniteTT.from_nodes(list_tensors)
 
-        assert len(tt.node_list) == n
+        assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == n
         assert len(tt.out_edges) == n
         assert len(tt.bond_edges) == n - 1
-        assert set(tt.nodes) == set(tt.node_list)
+        assert set(tt.nodes) == set(tt.train_nodes)
         assert_in_edges_name(tt)
         assert_out_edges_name(tt)
         assert_bond_edges_name(tt)
         assert_nodes_name(tt)
         assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
 
-        for node_actual, node_desired in zip(tt.node_list, list_tensors):
+        for node_actual, node_desired in zip(tt.train_nodes, list_tensors):
             assert (node_actual.tensor == node_desired).all()
 
     def test_node(self, n):
@@ -184,20 +184,20 @@ class Test_from_node_list:
         list_tensors += [np.random.random((d, d, chi))]
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
-        tt = FiniteTT.from_node_list(list_tensors)
+        tt = FiniteTT.from_nodes(list_tensors)
 
-        assert len(tt.node_list) == n
+        assert len(tt.train_nodes) == n
         assert len(tt.in_edges) == n
         assert len(tt.out_edges) == n
         assert len(tt.bond_edges) == n - 1
-        assert set(tt.nodes) == set(tt.node_list)
+        assert set(tt.nodes) == set(tt.train_nodes)
         assert_in_edges_name(tt)
         assert_out_edges_name(tt)
         assert_bond_edges_name(tt)
         assert_nodes_name(tt)
         assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
 
-        for node_actual, node_desired in zip(tt.node_list, list_tensors):
+        for node_actual, node_desired in zip(tt.train_nodes, list_tensors):
             assert (node_actual.tensor == node_desired.tensor).all()
 
     def test_incorrect_bond_dim_raises(self, n):
@@ -209,7 +209,7 @@ class Test_from_node_list:
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
         with pytest.raises(ValueError):
-            FiniteTT.from_node_list(list_tensors)
+            FiniteTT.from_nodes(list_tensors)
 
     def test_incorrect_shape_raises(self, n):
         d = 3
@@ -220,7 +220,7 @@ class Test_from_node_list:
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
         with pytest.raises(ValueError):
-            FiniteTT.from_node_list(list_tensors)
+            FiniteTT.from_nodes(list_tensors)
 
         if n > 2:
             list_tensors = [np.random.random((d, d, chi))]
@@ -231,38 +231,7 @@ class Test_from_node_list:
             list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
             with pytest.raises(ValueError):
-                FiniteTT.from_node_list(list_tensors)
-
-
-@pytest.mark.parametrize(
-    "in_shape, out_shape",
-    [
-        ((2, 2, 2), (2, 2, 2)),
-        ((2, 2), (2, 2)),
-        ((2,), (2,)),
-        ((2, 2, 2), ()),
-        ((2,), ()),
-        ((), (2, 2, 2)),
-        ((), (2,)),
-    ],
-)
-def tets_network_to_tt(in_shape, out_shape):
-    in_node = random_node(in_shape)
-    out_node = random_node(out_shape)
-    network = Network(out_node[:], in_node[:])
-    tt = network_to_tt(network)
-
-    assert len(tt.node_list) == max(len(in_shape), len(out_shape))
-    assert len(tt.in_edges) == len(in_shape)
-    assert len(tt.out_edges) == len(out_shape)
-    assert len(tt.bond_edges) == max(len(in_shape) - 1, len(out_shape) - 1)
-    assert set(tt.nodes) == set(tt.node_list)
-    assert_in_edges_name(tt)
-    assert_out_edges_name(tt)
-    assert_bond_edges_name(tt)
-    assert_nodes_name(tt)
-    assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
-    assert_almost_equal(network.to_array(), tt.to_array())
+                FiniteTT.from_nodes(list_tensors)
 
 
 @pytest.mark.parametrize(
@@ -280,7 +249,7 @@ def test_from_2d_array(shape, expected_dims):
     tt = FiniteTT.from_2d_array(array)
 
     assert isinstance(tt, FiniteTT)
-    assert len(tt.node_list) == (1 if shape else 0)
+    assert len(tt.train_nodes) == (1 if shape else 0)
     assert len(tt.bond_edges) == 0
     assert tt.dims == expected_dims
     assert_in_edges_name(tt)
