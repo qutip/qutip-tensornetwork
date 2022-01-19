@@ -281,7 +281,7 @@ class TestTruncate:
         copy = mpo.copy()
 
         error = mpo.truncate()
-        assert len(error) == 0
+        assert_no_truncation(error)
         # The default values will truncate the final tensor train as the first
         # few bond dimensions are lager than they need to be.
 
@@ -365,3 +365,7 @@ def test_copy(in_shape, out_shape):
     assert_nodes_name(copy)
     assert copy.bond_dimension == [e.dimension for e in copy.bond_edges]
     assert_almost_equal(copy.to_array(), tt.to_array())
+
+def assert_no_truncation(truncate_values):
+    for error in truncate_values:
+        assert len(error)==0
