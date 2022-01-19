@@ -259,8 +259,10 @@ class FiniteTT(Network):
 
         Returns
         -------
-        error: float
-            List of truncated singular values.
+        truncated_values: float
+            List of lists with the truncated singular values.
+            truncated_values[i] contains the truncated singular values for the
+            i-th node.
 
         See also
         --------
@@ -278,7 +280,7 @@ class FiniteTT(Network):
         if len(self.train_nodes) == 1:
             return []
 
-        total_error = []
+        truncated_values = []
         for i, bond_edge in enumerate(self.bond_edges):
 
             node = self.train_nodes[i]
@@ -301,7 +303,7 @@ class FiniteTT(Network):
                 max_singular_values=dim,
                 max_truncation_err=err,
             )
-            total_error += error.tolist()
+            truncated_values.append(error.tolist())
 
             # The next step is to contract the last two nodes to obtain the
             # network again in the tt format:
@@ -338,7 +340,7 @@ class FiniteTT(Network):
 
         self._nodes = set(new_nodes)
 
-        return total_error
+        return truncated_values
 
     @classmethod
     def _fast_constructor(cls, out_edges, in_edges, nodes):
