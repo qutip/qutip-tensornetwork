@@ -363,7 +363,7 @@ def _check_shape(nodes):
     for i, node in enumerate(nodes[1:-1], start=2):
         if len(node.shape) != 1 + len(nodes[0].shape):
             raise ValueError(
-                f" the shape of the {i}-th node is not correct. It"
+                f"The shape of the {i}-th node is not correct. It"
                 f" has rank {len(node.shape)} but was expecting"
                 f" {len(nodes[0].shape) + 1}."
             )

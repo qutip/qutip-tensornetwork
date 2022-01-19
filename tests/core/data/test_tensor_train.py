@@ -283,7 +283,7 @@ class TestTruncate:
         error = mpo.truncate()
         assert len(error) == 0
         # The default values will truncate the final tensor train as the first
-        # few bond dimensions are lager than they need to be.
+        # few bond dimensions are larger than they need to be.
 
         assert len(mpo.train_nodes) == n
         assert len(mpo.in_edges) == n
