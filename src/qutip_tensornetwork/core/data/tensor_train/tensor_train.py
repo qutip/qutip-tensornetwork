@@ -241,8 +241,9 @@ class FiniteTT(Network):
 
         Notes
         -----
-        The truncation method consists on performing a svd decomposition from
-        left to right and truncating each nodes svd by the given parameters.
+        The truncation method consists of performing an SVD decomposition from
+        left to right and truncating each node's list of singular values as specified
+        (see the parameter descriptions below).
 
         Parameters
         ----------
