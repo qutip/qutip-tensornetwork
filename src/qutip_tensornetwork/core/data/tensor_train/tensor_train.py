@@ -302,27 +302,34 @@ class FiniteTT(Network):
                 max_truncation_err=err,
             )
             total_error += error.tolist()
-            lnode.name = node.name
-            lnode.reorder_edges(left_edges + [s[0]])
-            lnode.add_axis_names(node.axis_names)
 
             # The next step is to contract the last two nodes to obtain the
             # network again in the tt format:
             #   |           |            |   |
             # - * - * - * - * -  ----> - * - * -
             #   |           |            |   |
-            # Note that bond edge connects now rnode and next_node
+            # We do this by contracting the first node (singular values) to the
+            # left and the second node (rnode) to the right. This is done to
+            # keep the singular values spread over the tensor train. Note that
+            # the result will not be in a canonical form.
+            edge_order = left_edges + [s[1]]
+            new_node = tn.contract_between(lnode, s,
+                                           output_edge_order=edge_order,
+                                           axis_names=node.axis_names)
+            new_node.name = node.name
+
+
+            # We then contract rnode with next_node
             axis_names = next_node.axis_names
             edge_order = [next_node["out"]] if "out" in axis_names else []
             edge_order += [next_node["in"]] if "in" in axis_names else []
-            edge_order += [s[0]]  # This is the new bond edge
+            edge_order += [new_node["rbond"]]  # This is the new "lbond" edge
             edge_order += [next_node["rbond"]] if "rbond" in axis_names else []
 
-            tn.contract(s[1])
-            new_next_node = tn.contract(bond_edge)
+            new_next_node = tn.contract_between(rnode, next_node,
+                                               output_edge_order=edge_order,
+                                               axis_names=next_node.axis_names)
             new_next_node.name = next_node.name
-            new_next_node.reorder_edges(edge_order)
-            new_next_node.add_axis_names(axis_names)
 
         # We append the last node after the for loop as it does not need to be
         # truncated.
