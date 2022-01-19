@@ -36,15 +36,15 @@ def random_mpo(n, d, bond_dimension):
     """Create a random mpo with n sites d dimension per site and
     bond_dimesnion."""
     if n > 1:
-        list_tensors = [np.random.random((d, d, bond_dimension)) - 1 / 2]
+        list_tensors = [random_node((d, d, bond_dimension)) - 1 / 2]
         list_tensors += [
-            np.random.random((d, d, bond_dimension, bond_dimension)) - 1 / 2
+            random_node((d, d, bond_dimension, bond_dimension)) - 1 / 2
             for _ in range(n - 2)
         ]
-        list_tensors += [np.random.random((d, d, bond_dimension)) - 1 / 2]
+        list_tensors += [random_node((d, d, bond_dimension)) - 1 / 2]
         mpo = FiniteTT.from_nodes(list_tensors)
     elif n == 1:
-        node = tn.Node(np.random.random((d, d)))
+        node = tn.Node(random_node((d, d)))
         mpo = FiniteTT(node[0:1], node[1:])
     return mpo
 
@@ -137,9 +137,9 @@ class Test_node_list:
     def test_ket(self, n):
         d = 3
         chi = 10
-        list_tensors = [np.random.random((d, chi))]
-        list_tensors += [np.random.random((d, chi, chi)) for _ in range(n - 2)]
-        list_tensors += [np.random.random((d, chi))]
+        list_tensors = [random_node((d, chi))]
+        list_tensors += [random_node((d, chi, chi)) for _ in range(n - 2)]
+        list_tensors += [random_node((d, chi))]
 
         tt = FiniteTT.from_nodes(list_tensors)
 
@@ -155,14 +155,14 @@ class Test_node_list:
         assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
 
         for node_actual, node_desired in zip(tt.train_nodes, list_tensors):
-            assert (node_actual.tensor == node_desired).all()
+            assert (node_actual.tensor == node_desired.tensor).all()
 
     def test_op(self, n):
         d = 3
         chi = 10
-        list_tensors = [np.random.random((d, d, chi))]
-        list_tensors += [np.random.random((d, d, chi, chi)) for _ in range(n - 2)]
-        list_tensors += [np.random.random((d, d, chi))]
+        list_tensors = [random_node((d, d, chi))]
+        list_tensors += [random_node((d, d, chi, chi)) for _ in range(n - 2)]
+        list_tensors += [random_node((d, d, chi))]
 
         tt = FiniteTT.from_nodes(list_tensors)
 
@@ -178,14 +178,14 @@ class Test_node_list:
         assert tt.bond_dimension == [e.dimension for e in tt.bond_edges]
 
         for node_actual, node_desired in zip(tt.train_nodes, list_tensors):
-            assert (node_actual.tensor == node_desired).all()
+            assert (node_actual.tensor == node_desired.tensor).all()
 
     def test_node(self, n):
         d = 3
         chi = 10
-        list_tensors = [np.random.random((d, d, chi))]
-        list_tensors += [np.random.random((d, d, chi, chi)) for _ in range(n - 2)]
-        list_tensors += [np.random.random((d, d, chi))]
+        list_tensors = [random_node((d, d, chi))]
+        list_tensors += [random_node((d, d, chi, chi)) for _ in range(n - 2)]
+        list_tensors += [random_node((d, d, chi))]
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
         tt = FiniteTT.from_nodes(list_tensors)
@@ -207,9 +207,9 @@ class Test_node_list:
     def test_incorrect_bond_dim_raises(self, n):
         d = 3
         chi = 10
-        list_tensors = [np.random.random((d, d, chi + 1))]
-        list_tensors += [np.random.random((d, d, chi, chi)) for _ in range(n - 2)]
-        list_tensors += [np.random.random((d, d, chi))]
+        list_tensors = [random_node((d, d, chi + 1))]
+        list_tensors += [random_node((d, d, chi, chi)) for _ in range(n - 2)]
+        list_tensors += [random_node((d, d, chi))]
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
         with pytest.raises(ValueError):
@@ -218,20 +218,20 @@ class Test_node_list:
     def test_incorrect_shape_raises(self, n):
         d = 3
         chi = 10
-        list_tensors = [np.random.random((d, d, chi, chi))]
-        list_tensors += [np.random.random((d, d, chi, chi)) for _ in range(n - 2)]
-        list_tensors += [np.random.random((d, d, chi))]
+        list_tensors = [random_node((d, d, chi, chi))]
+        list_tensors += [random_node((d, d, chi, chi)) for _ in range(n - 2)]
+        list_tensors += [random_node((d, d, chi))]
         list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
         with pytest.raises(ValueError):
             FiniteTT.from_nodes(list_tensors)
 
         if n > 2:
-            list_tensors = [np.random.random((d, d, chi))]
+            list_tensors = [random_node((d, d, chi))]
             list_tensors += [
-                np.random.random((d, d, chi, chi, 10)) for _ in range(n - 2)
+                random_node((d, d, chi, chi, 10)) for _ in range(n - 2)
             ]
-            list_tensors += [np.random.random((d, d, chi))]
+            list_tensors += [random_node((d, d, chi))]
             list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
             with pytest.raises(ValueError):
