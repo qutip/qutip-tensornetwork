@@ -236,27 +236,34 @@ class FiniteTT(Network):
 
     def truncate(self, bond_dimension=None, max_truncation_err=None):
         """Truncate in-place the bond dimension of the tensor train according
-        to ``bond_dimension``. This is done from left to right and once
-        finished the network is right normalized.
+        to ``bond_dimension`` and ``max_truncation_err``. If both are provided
+        ``bond_dimension`` takes precedence. The truncation error of the i-th
+        node may be larger than ``max_truncation_err[i]`` if required to
+        satisfy ``bond_dimension[i]``.
 
         Notes
         -----
         The truncation method consists of performing an SVD decomposition from
-        left to right and truncating each node's list of singular values as specified
-        (see the parameter descriptions below).
+        left to right and truncating each node's list of singular values as
+        specified (see the parameter descriptions below). Note that singular
+        values of i-th node are contracted to the i-th node. This means that
+        the result is _not_ in a canonical form.
 
         Parameters
         ----------
         bond_dimension: List of int or int
             List of integers that define, from left to right, the target bond
             dimension. If a single integer is provided is understood as the
-            same bond dimension for all bonds. None is understood as
-            "infinite" bond dimension and hence no truncation is done.
+            same bond dimension for all bonds. ``None`` is understood as "infinite"
+            bond dimension and hence is ignored.
 
         max_truncation_err: List of float or float
             Maximum truncation error for each individual node. If a single
             value is provided instead of a list, it is the assumed that the
-            same value applies for every node.
+            same value applies for every node. ``None`` is understood as 0 and
+            hence it is ignored. If both ``bond_dimension`` and
+            ``max_truncation_err`` are provided, ``bond_dimension`` takes
+            precedence.
 
         Returns
         -------
@@ -267,9 +274,9 @@ class FiniteTT(Network):
 
         See also
         --------
-        tensornetwork.split_node:
-            Function employed to split individual nodes. ``bond_dimension``
-            and ``max_truncation_err`` directly translate into
+        tensornetwork.split_node_full_svd:
+            Function employed to split individual nodes. ``bond_dimension`` and
+            ``max_truncation_err`` directly translate into
             ``max_singular_values`` and ``max_truncation_err``.
         """
         if not isinstance(bond_dimension, list):
