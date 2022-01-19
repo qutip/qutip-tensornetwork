@@ -286,14 +286,18 @@ class FiniteTT(Network):
             max_truncation_err = [max_truncation_err] * len(self.bond_edges)
 
         if len(max_truncation_err) != len(self.bond_edges):
-            raise ValueError(f"{len(max_truncation_err)} values where provided"
-                             " for `max_truncation_err` but there are"
-                             f" {len(self.bond_edges)} bond edges.")
+            raise ValueError(
+                f"{len(max_truncation_err)} values where provided"
+                " for `max_truncation_err` but there are"
+                f" {len(self.bond_edges)} bond edges."
+            )
 
         if len(bond_dimension) != len(self.bond_edges):
-            raise ValueError(f"{len(bond_dimension)} values where provided"
-                             " for `bond_dimension` but there are"
-                             f" {len(self.bond_edges)} bond edges.")
+            raise ValueError(
+                f"{len(bond_dimension)} values where provided"
+                " for `bond_dimension` but there are"
+                f" {len(self.bond_edges)} bond edges."
+            )
 
         if len(self.train_nodes) == 1:
             return []
@@ -302,7 +306,7 @@ class FiniteTT(Network):
         for i, bond_edge in enumerate(self.bond_edges):
 
             node = self.train_nodes[i]
-            next_node = self.train_nodes[i+1]
+            next_node = self.train_nodes[i + 1]
             dim = bond_dimension[i]
             err = max_truncation_err[i]
 
@@ -333,11 +337,10 @@ class FiniteTT(Network):
             # keep the singular values spread over the tensor train. Note that
             # the result will not be in a canonical form.
             edge_order = left_edges + [s[1]]
-            new_node = tn.contract_between(lnode, s,
-                                           output_edge_order=edge_order,
-                                           axis_names=node.axis_names)
+            new_node = tn.contract_between(
+                lnode, s, output_edge_order=edge_order, axis_names=node.axis_names
+            )
             new_node.name = node.name
-
 
             # We then contract rnode with next_node
             axis_names = next_node.axis_names
@@ -346,9 +349,12 @@ class FiniteTT(Network):
             edge_order += [new_node["rbond"]]  # This is the new "lbond" edge
             edge_order += [next_node["rbond"]] if "rbond" in axis_names else []
 
-            new_next_node = tn.contract_between(rnode, next_node,
-                                               output_edge_order=edge_order,
-                                               axis_names=next_node.axis_names)
+            new_next_node = tn.contract_between(
+                rnode,
+                next_node,
+                output_edge_order=edge_order,
+                axis_names=next_node.axis_names,
+            )
             new_next_node.name = next_node.name
 
         # We append the last node after the for loop as it does not need to be

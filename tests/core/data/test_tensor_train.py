@@ -228,9 +228,7 @@ class Test_node_list:
 
         if n > 2:
             list_tensors = [random_node((d, d, chi))]
-            list_tensors += [
-                random_node((d, d, chi, chi, 10)) for _ in range(n - 2)
-            ]
+            list_tensors += [random_node((d, d, chi, chi, 10)) for _ in range(n - 2)]
             list_tensors += [random_node((d, d, chi))]
             list_tensors = [tn.Node(tensor) for tensor in list_tensors]
 
@@ -334,23 +332,28 @@ class TestTruncate:
         ]
         assert mpo.bond_dimension == expected_bond_dim[:n]
 
-    @pytest.mark.parametrize("n_bonds", [3,5])
+    @pytest.mark.parametrize("n_bonds", [3, 5])
     def test_raises_wrong_len_argument(self, n_bonds):
         bond_dimension = [2, 2, 2, 2]
-        mpo = random_mpo(n_bonds+1, 2, 10)
+        mpo = random_mpo(n_bonds + 1, 2, 10)
 
         with pytest.raises(ValueError) as e:
             mpo.truncate(bond_dimension=bond_dimension)
 
-        assert ("4 values where provided for `bond_dimension` but there"
-        f" are {n_bonds} bond edges." in str(e))
+        assert (
+            "4 values where provided for `bond_dimension` but there"
+            f" are {n_bonds} bond edges." in str(e)
+        )
 
-        max_truncation_err = [1., 1., 1., 1.]
+        max_truncation_err = [1.0, 1.0, 1.0, 1.0]
         with pytest.raises(ValueError) as e:
             mpo.truncate(max_truncation_err=max_truncation_err)
 
-        assert ("4 values where provided for `max_truncation_err` but there"
-        f" are {n_bonds} bond edges." in str(e))
+        assert (
+            "4 values where provided for `max_truncation_err` but there"
+            f" are {n_bonds} bond edges." in str(e)
+        )
+
 
 @pytest.mark.parametrize(
     "in_shape, out_shape",
@@ -383,6 +386,7 @@ def test_copy(in_shape, out_shape):
     assert copy.bond_dimension == [e.dimension for e in copy.bond_edges]
     assert_almost_equal(copy.to_array(), tt.to_array())
 
+
 def assert_no_truncation(truncate_values):
     for error in truncate_values:
-        assert len(error)==0
+        assert len(error) == 0
