@@ -241,8 +241,9 @@ class FiniteTT(Network):
 
         Notes
         -----
-        The truncation method consists on performing a svd decomposition from
-        left to right and truncating each nodes svd by the given parameters.
+        The truncation method consists of performing an SVD decomposition from
+        left to right and truncating each node's list of singular values as specified
+        (see the parameter descriptions below).
 
         Parameters
         ----------
@@ -371,7 +372,7 @@ def _check_shape(nodes):
     for i, node in enumerate(nodes[1:-1], start=2):
         if len(node.shape) != 1 + len(nodes[0].shape):
             raise ValueError(
-                f" the shape of the {i}-th node is not correct. It"
+                f"The shape of the {i}-th node is not correct. It"
                 f" has rank {len(node.shape)} but was expecting"
                 f" {len(nodes[0].shape) + 1}."
             )
