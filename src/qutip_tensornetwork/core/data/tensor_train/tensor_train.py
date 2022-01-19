@@ -279,12 +279,12 @@ class FiniteTT(Network):
             return []
 
         total_error = []
-        for bond_edge, dim, err in zip(
-            self.bond_edges, bond_dimension, max_truncation_err
-        ):
+        for i, bond_edge in enumerate(self.bond_edges):
 
-            node = bond_edge.node1
-            next_node = bond_edge.node2
+            node = self.train_nodes[i]
+            next_node = self.train_nodes[i+1]
+            dim = bond_dimension[i]
+            err = max_truncation_err[i]
 
             # We begin by performing the following (svd) transformation:
             #   |   |             |           |
@@ -320,9 +320,9 @@ class FiniteTT(Network):
 
             tn.contract(s[1])
             new_next_node = tn.contract(bond_edge)
+            new_next_node.name = next_node.name
             new_next_node.reorder_edges(edge_order)
             new_next_node.add_axis_names(axis_names)
-            new_next_node.name = next_node.name
 
         # We append the last node after the for loop as it does not need to be
         # truncated.
