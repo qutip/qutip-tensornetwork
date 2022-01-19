@@ -334,6 +334,23 @@ class TestTruncate:
         ]
         assert mpo.bond_dimension == expected_bond_dim[:n]
 
+    @pytest.mark.parametrize("n_bonds", [3,5])
+    def test_raises_wrong_len_argument(self, n_bonds):
+        bond_dimension = [2, 2, 2, 2]
+        mpo = random_mpo(n_bonds+1, 2, 10)
+
+        with pytest.raises(ValueError) as e:
+            mpo.truncate(bond_dimension=bond_dimension)
+
+        assert ("4 values where provided for `bond_dimension` but there"
+        f" are {n_bonds} bond edges." in str(e))
+
+        max_truncation_err = [1., 1., 1., 1.]
+        with pytest.raises(ValueError) as e:
+            mpo.truncate(max_truncation_err=max_truncation_err)
+
+        assert ("4 values where provided for `max_truncation_err` but there"
+        f" are {n_bonds} bond edges." in str(e))
 
 @pytest.mark.parametrize(
     "in_shape, out_shape",

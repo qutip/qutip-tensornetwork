@@ -254,8 +254,8 @@ class FiniteTT(Network):
         bond_dimension: List of int or int
             List of integers that define, from left to right, the target bond
             dimension. If a single integer is provided is understood as the
-            same bond dimension for all bonds. ``None`` is understood as "infinite"
-            bond dimension and hence is ignored.
+            same bond dimension for all bonds. ``None`` is understood as
+            "infinite" bond dimension and hence is ignored.
 
         max_truncation_err: List of float or float
             Maximum truncation error for each individual node. If a single
@@ -284,6 +284,16 @@ class FiniteTT(Network):
 
         if not isinstance(max_truncation_err, list):
             max_truncation_err = [max_truncation_err] * len(self.bond_edges)
+
+        if len(max_truncation_err) != len(self.bond_edges):
+            raise ValueError(f"{len(max_truncation_err)} values where provided"
+                             " for `max_truncation_err` but there are"
+                             f" {len(self.bond_edges)} bond edges.")
+
+        if len(bond_dimension) != len(self.bond_edges):
+            raise ValueError(f"{len(bond_dimension)} values where provided"
+                             " for `bond_dimension` but there are"
+                             f" {len(self.bond_edges)} bond edges.")
 
         if len(self.train_nodes) == 1:
             return []
