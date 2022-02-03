@@ -317,6 +317,8 @@ class FiniteTT(Network):
             # where the edge between the nodes (left fig) is the bond_edge.
             # Note that the svd truncates the dimension of the new nodes.
             left_edges = [edge for edge in node if edge is not bond_edge]
+            left_edges = [node["out"], node["in"]]
+            left_edges += [node["lbond"]] if "lbond" in node.axis_names else []
             right_edges = [bond_edge]
             lnode, s, rnode, error = tn.split_node_full_svd(
                 node,
