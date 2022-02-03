@@ -354,6 +354,96 @@ class TestTruncate:
             f" are {n_bonds} bond edges." in str(e)
         )
 
+    def test_numerical_correctness(self):
+        """This tests that the truncation is done as expected using a diagonal
+        set of nodes as example."""
+
+        def arange_diag(shape, start=None):
+            """Returns a diagonal numpy array with shape ``shape`` that has in
+            its diagonal values from ``np.arange``"""
+            if start is None:
+                start = min(shape)
+            # We sort values from large to small as it is expected from the
+            # svd decomposition that comes later.
+            diag = np.arange(start, 0, -1)
+            array = np.zeros(shape)
+            np.fill_diagonal(array, diag)
+            return array
+
+        # We create a MPO with tensors that are "diagonal". By this we mean
+        # that during the truncation process the nodes are reshaped into a
+        # matrix that will be diagonal and hence the SVD decomposition will be
+        # trivial (u and v are identity). We use values of chi so that truncate
+        # without arguments does not change the nodes.
+        d = 2
+        chi = 10
+        n = 4
+
+        list_chi = [d ** (2 * i) for i in range(1, n)]
+        list_tensors = [arange_diag((d * d, list_chi[0])).reshape((d, d, list_chi[0]))]
+
+        list_tensors += [
+            arange_diag((d * d * chi1, chi2)).reshape((d, d, chi1, chi2))
+            for chi1, chi2 in zip(list_chi[:-1], list_chi[1:])
+        ]
+        list_tensors += [
+            arange_diag((d * d, list_chi[-1])).reshape((d, d, list_chi[-1]))
+        ]
+        list_tensors = [tn.Node(tensor) for tensor in list_tensors]
+        initial = FiniteTT.from_nodes(list_tensors)
+
+        mpo = initial.copy()
+        for node1, node2 in zip(mpo.train_nodes, initial.train_nodes):
+            assert_almost_equal(node1.tensor, node2.tensor)
+
+        # We check that no node is changed after truncate as no different bond
+        # dimension was specified
+        error = mpo.truncate()
+        for i, (node1, node2) in enumerate(zip(mpo.train_nodes, initial.train_nodes)):
+            assert_almost_equal(
+                node1.tensor, node2.tensor, err_msg=f"Error in node {i}"
+            )
+
+        assert error == [[], [], []]
+
+        # expected mpo and errors from a truncate(2) method call. The expected
+        # mpo consist on the truncation of all but the first two values of
+        # each node. The error will show as if less values were truncated but
+        # this is because some are truncated during the contraction of v and
+        # the next node.
+        expected_error = [
+            [2.0, 1.0],
+            [12.0, 11.0, 8.0, 7.0, 4.0, 3.0],
+            [48.0, 47.0, 32.0, 31.0, 16.0, 15.0],
+        ]
+
+        list_chi = [2] * (n - 1) # Bond dimension 2 for all bonds
+        start = [d ** (2 * i) for i in range(1, n)] + [4]
+        list_tensors = [
+            arange_diag((d * d, list_chi[0]), start[0]).reshape((d, d, list_chi[0]))
+        ]
+
+        list_tensors += [
+            arange_diag((d * d * chi1, chi2), s).reshape((d, d, chi1, chi2))
+            for chi1, chi2, s in zip(list_chi[:-1], list_chi[1:], start[1:])
+        ]
+        list_tensors += [
+            arange_diag((d * d, list_chi[-1]), start[-1]).reshape((d, d, list_chi[-1]))
+        ]
+
+        list_tensors = [tn.Node(tensor) for tensor in list_tensors]
+        expected_mpo = FiniteTT.from_nodes(list_tensors)
+
+        error = mpo.truncate(2)
+        for i, (node1, node2) in enumerate(
+            zip(mpo.train_nodes, expected_mpo.train_nodes)
+        ):
+            assert_almost_equal(
+                node1.tensor, node2.tensor, err_msg=f"Error in node {i}"
+            )
+
+        assert error == expected_error
+
 
 @pytest.mark.parametrize(
     "in_shape, out_shape",
