@@ -417,7 +417,7 @@ class TestTruncate:
             [48.0, 47.0, 32.0, 31.0, 16.0, 15.0],
         ]
 
-        list_chi = [2] * (n - 1) # Bond dimension 2 for all bonds
+        list_chi = [2] * (n - 1)  # Bond dimension 2 for all bonds
         start = [d ** (2 * i) for i in range(1, n)] + [4]
         list_tensors = [
             arange_diag((d * d, list_chi[0]), start[0]).reshape((d, d, list_chi[0]))
