@@ -51,7 +51,7 @@ class FiniteTT(Network):
         in_edges and out_edges or scalar nodes, in which case they have no
         edges.
 
-    nodes_list: List of Nodes
+    train_nodes: List of Nodes
         Nodes of the tensor-train sorted from left to right.
     out_edges : list of Edges
         List of ``Edges`` to be used. When the network is considered as a
@@ -63,7 +63,7 @@ class FiniteTT(Network):
 
     bond_edges: List of Edges
         The edges between the nodes of the tensor-train. These are sorted from
-        left to right (i.e. ``nodes_list[i]["rbond"] == bond_edges[i]``).
+        left to right (i.e. ``train_nodes[i]["rbond"] == bond_edges[i]``).
 
     dims : list of int
         Dimension of the system as a list of lists. dims[0] represents the
@@ -234,6 +234,154 @@ class FiniteTT(Network):
 
         self._nodes = set(nodes)
 
+    def truncate(self, bond_dimension=None, max_truncation_err=None):
+        """Truncate in-place the bond dimension of the tensor train according
+        to ``bond_dimension`` and ``max_truncation_err``. If both are provided
+        ``bond_dimension`` takes precedence. The truncation error of the i-th
+        node may be larger than ``max_truncation_err[i]`` if required to
+        satisfy ``bond_dimension[i]``.
+
+        Notes
+        -----
+        The truncation method consists of performing an SVD decomposition from
+        left to right and truncating each node's list of singular values as
+        specified (see the parameter descriptions below). Note that singular
+        values of i-th node are contracted to the i-th node. This means that
+        the result is _not_ in a canonical form.
+
+        Parameters
+        ----------
+        bond_dimension: List of int or int
+            List of integers that define, from left to right, the target bond
+            dimension. If a single integer is provided is understood as the
+            same bond dimension for all bonds. ``None`` is understood as
+            "infinite" bond dimension and hence is ignored.
+
+        max_truncation_err: List of float or float
+            Maximum truncation error for each individual node. If a single
+            value is provided instead of a list, it is the assumed that the
+            same value applies for every node. ``None`` is understood as 0 and
+            hence it is ignored. If both ``bond_dimension`` and
+            ``max_truncation_err`` are provided, ``bond_dimension`` takes
+            precedence.
+
+        Returns
+        -------
+        truncated_values: float
+            List of lists with the truncated singular values.
+            truncated_values[i] contains the truncated singular values for the
+            i-th node.
+
+        See also
+        --------
+        tensornetwork.split_node_full_svd:
+            Function employed to split individual nodes. ``bond_dimension`` and
+            ``max_truncation_err`` directly translate into
+            ``max_singular_values`` and ``max_truncation_err``.
+        """
+        if not isinstance(bond_dimension, list):
+            bond_dimension = [bond_dimension] * len(self.bond_edges)
+
+        if not isinstance(max_truncation_err, list):
+            max_truncation_err = [max_truncation_err] * len(self.bond_edges)
+
+        if len(max_truncation_err) != len(self.bond_edges):
+            raise ValueError(
+                f"{len(max_truncation_err)} values where provided"
+                " for `max_truncation_err` but there are"
+                f" {len(self.bond_edges)} bond edges."
+            )
+
+        if len(bond_dimension) != len(self.bond_edges):
+            raise ValueError(
+                f"{len(bond_dimension)} values where provided"
+                " for `bond_dimension` but there are"
+                f" {len(self.bond_edges)} bond edges."
+            )
+
+        if len(self.train_nodes) == 1:
+            return []
+
+        truncated_values = []
+        for i, bond_edge in enumerate(self.bond_edges):
+
+            node = self.train_nodes[i]
+            next_node = self.train_nodes[i + 1]
+            dim = bond_dimension[i]
+            err = max_truncation_err[i]
+
+            # We begin by performing the following (svd) transformation:
+            #   |   |             |           |
+            # - * - * -   --->  - * - * - * - * -
+            #   |   |             |           |
+            # where the edge between the nodes (left fig) is the bond_edge.
+            # Note that the svd truncates the dimension of the new nodes.
+            left_edges = [edge for edge in node if edge is not bond_edge]
+            left_edges = [node["out"], node["in"]]
+            left_edges += [node["lbond"]] if "lbond" in node.axis_names else []
+            right_edges = [bond_edge]
+            lnode, s, rnode, error = tn.split_node_full_svd(
+                node,
+                left_edges,
+                right_edges,
+                max_singular_values=dim,
+                max_truncation_err=err,
+            )
+            truncated_values.append(error.tolist())
+
+            # The next step is to contract the last two nodes to obtain the
+            # network again in the tt format:
+            #   |           |            |   |
+            # - * - * - * - * -  ----> - * - * -
+            #   |           |            |   |
+            # We do this by contracting the first node (singular values) to the
+            # left and the second node (rnode) to the right. This is done to
+            # keep the singular values spread over the tensor train. Note that
+            # the result will not be in a canonical form.
+            edge_order = left_edges + [s[1]]
+            new_node = tn.contract_between(
+                lnode, s, output_edge_order=edge_order, axis_names=node.axis_names
+            )
+            new_node.name = node.name
+
+            # We then contract rnode with next_node
+            axis_names = next_node.axis_names
+            edge_order = [next_node["out"]] if "out" in axis_names else []
+            edge_order += [next_node["in"]] if "in" in axis_names else []
+            edge_order += [new_node["rbond"]]  # This is the new "lbond" edge
+            edge_order += [next_node["rbond"]] if "rbond" in axis_names else []
+
+            new_next_node = tn.contract_between(
+                rnode,
+                next_node,
+                output_edge_order=edge_order,
+                axis_names=next_node.axis_names,
+            )
+            new_next_node.name = next_node.name
+
+        # We append the last node after the for loop as it does not need to be
+        # truncated.
+        new_nodes = [edge.node1 for edge in self.bond_edges]
+        new_nodes += [self.bond_edges[-1].node2]
+
+        self._nodes = set(new_nodes)
+
+        return truncated_values
+
+    @classmethod
+    def _fast_constructor(cls, out_edges, in_edges, nodes):
+        """Fast constructor for a TensorTrain. This is unsafe and should only be
+        used if it is known with absolute certainty that the input edges and
+        nodes form a correct TensorTrain. For example, after a matmul operation
+        with two valid networks.
+        """
+        out = cls.__new__(cls)
+        out.in_edges = in_edges
+        out.out_edges = out_edges
+        out._nodes = nodes
+
+        return out
+
 
 def _check_shape(nodes):
     """Check that the nodes have the appropriate shape for the `from_node_list`
@@ -246,14 +394,14 @@ def _check_shape(nodes):
         )
 
     previous_lbond_dim = nodes[0].shape[-1]
-    for i, node in enumerate(nodes[1:-1], start=1):
+    for i, node in enumerate(nodes[1:-1], start=2):
         if len(node.shape) != 1 + len(nodes[0].shape):
             raise ValueError(
-                " the shape of the {i}-th node is not correct. It"
+                f"The shape of the {i}-th node is not correct. It"
                 f" has rank {len(node.shape)} but was expecting"
                 f" {len(nodes[0].shape) + 1}."
             )
-        # Checking bond_dimension is not sctrictly necessary but we do it to
+        # Checking bond_dimension is not strictly necessary but we do it to
         # raise a clearer error message.
         if node.shape[-2] != previous_lbond_dim:
             raise ValueError(

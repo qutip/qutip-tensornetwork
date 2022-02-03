@@ -191,7 +191,7 @@ class Network(qutip.core.data.Data):
         in_edges = [edge_dict[e] for e in self.in_edges]
         out_edges = [edge_dict[e] for e in self.out_edges]
 
-        return Network._fast_constructor(out_edges, in_edges, nodes)
+        return self._fast_constructor(out_edges, in_edges, nodes)
 
     @classmethod
     def _fast_constructor(cls, out_edges, in_edges, nodes):
